@@ -65,6 +65,8 @@ app.use('/api/v1/scan', scanRoutes);
 app.use('/api/v1/check', checkRoutes);
 app.use('/api/v1/report', reportRoutes);
 app.use('/api/v1/user', userRoutes);
+const reputationRoutes = require('./routes/reputation');
+app.use('/api/v1', reputationRoutes);
 
 // ── Health Check ──────────────────────────────────────────
 app.get('/health', (req, res) => {
