@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { hashPhone, hashAccount } = require('../utils/crypto');
-const { getPhoneProfile, getAccountProfile } = require('../services/fraudGraph');
+const PhoneRepository = require('../repositories/PhoneRepository');
+const BankAccountRepository = require('../repositories/BankAccountRepository');
 
 /**
  * GET /api/v1/check/phone/:number
@@ -24,20 +25,27 @@ router.get('/phone/:number', async (req, res) => {
       : '62' + cleaned;
 
     const phoneHash = hashPhone(normalized);
-    const profile = await getPhoneProfile(phoneHash);
+    const profile = (await PhoneRepository.findByHash(phoneHash)) || {
+      riskScore: 0,
+      reportsCount: 0,
+      category: null,
+      signals: [],
+      lastActivity: null,
+      firstReported: null,
+    };
 
     res.json({
       success: true,
       data: {
         phone_masked: '+62 ' + maskPhone(cleaned),
         phone_hash: phoneHash,
-        risk_score: profile.risk_score,
-        status: scoreToStatus(profile.risk_score),
-        reports_count: profile.reports_count,
+        risk_score: profile.riskScore,
+        status: scoreToStatus(profile.riskScore),
+        reports_count: profile.reportsCount,
         category: profile.category,
         signals: profile.signals,
-        last_activity: profile.last_activity,
-        first_reported: profile.first_reported,
+        last_activity: profile.lastActivity,
+        first_reported: profile.firstReported,
       },
       checked_at: new Date().toISOString(),
     });
@@ -66,7 +74,11 @@ router.get('/account', async (req, res) => {
     }
 
     const accountHash = hashAccount(cleanAccount, bank.toUpperCase());
-    const profile = await getAccountProfile(accountHash, bank.toUpperCase());
+    const profile = (await BankAccountRepository.findByHashAndBank(accountHash, bank.toUpperCase())) || {
+      riskScore: 0,
+      reportsCount: 0,
+      categories: [],
+    };
 
     res.json({
       success: true,
@@ -74,9 +86,9 @@ router.get('/account', async (req, res) => {
         account_masked: maskAccount(cleanAccount),
         bank: bank.toUpperCase(),
         account_hash: accountHash,
-        risk_score: profile.risk_score,
-        status: scoreToStatus(profile.risk_score),
-        reports_count: profile.reports_count,
+        risk_score: profile.riskScore,
+        status: scoreToStatus(profile.riskScore),
+        reports_count: profile.reportsCount,
         categories: profile.categories,
       },
       checked_at: new Date().toISOString(),

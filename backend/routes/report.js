@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { hashInput } = require('../utils/crypto');
-const { createFraudReport, getTrendingReports } = require('../services/fraudGraph');
+const ReportRepository = require('../repositories/ReportRepository');
 
 const VALID_TARGET_TYPES = ['phone', 'account', 'link', 'whatsapp'];
 const VALID_CATEGORIES = [
@@ -46,7 +46,7 @@ router.post('/', async (req, res) => {
     const targetHash = hashInput(target.trim());
     const trackingId = `SLD-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
 
-    const report = await createFraudReport({
+    const report = await ReportRepository.insert({
       trackingId,
       targetType: target_type,
       targetHash,
@@ -76,7 +76,7 @@ router.post('/', async (req, res) => {
 router.get('/trending', async (req, res) => {
   try {
     const { limit = 10, category } = req.query;
-    const reports = await getTrendingReports({
+    const reports = await ReportRepository.findTrending({
       limit: Math.min(parseInt(limit), 50),
       category,
     });

@@ -3,10 +3,10 @@
 const { v4: uuidv4 } = require('uuid');
 const EntityResolver = require('./entityResolver');
 const CacheProvider = require('../utils/cacheProvider');
-const FraudEntityRepository = require('../repositories/fraudEntityRepository');
-const FraudReportRepository = require('../repositories/fraudReportRepository');
+const FraudEntityRepository = require('../repositories/FraudEntityRepository');
+const FraudReportRepository = require('../repositories/FraudReportRepository');
 const RiskEngine = require('./riskEngine');
-const ResponseBuilder = require('./responseBuilder');
+const ResponseBuilder = require('../builders/ResponseBuilder');
 const LookupLogRepository = require('../repositories/lookupLogRepository');
 const config = require('../config/reputationConfig');
 const logger = require('../utils/logger');

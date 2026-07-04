@@ -28,6 +28,30 @@ class ResponseBuilder {
   }
 
   /**
+   * Build a detailed reputation result envelope.
+   * Used by reputation check workflow.
+   */
+  static build({ entityType, normalized, hash, entityRecord, reports, riskResult, queryId, cacheHit }) {
+    return {
+      data: {
+        entityType,
+        normalized,
+        hash,
+        riskScore: riskResult.riskScore,
+        confidence: riskResult.confidence,
+        label: riskResult.label,
+        explanation: riskResult.explanation,
+        explanationCodes: riskResult.explanationCodes,
+        reportsCount: reports.length,
+      },
+      meta: {
+        queryId,
+        cacheHit,
+      }
+    };
+  }
+
+  /**
    * Build an error envelope.
    * @param {Object} params
    * @param {string} params.code - error code identifier
