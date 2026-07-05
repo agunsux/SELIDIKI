@@ -11,6 +11,8 @@ const LookupLogRepository = require('../repositories/lookupLogRepository');
 const config = require('../config/reputationConfig');
 const logger = require('../utils/logger');
 
+const { hashInput, hashPhone, hashAccount } = require('../utils/crypto');
+
 /**
  * ReputationService orchestrates the lookup pipeline.
  * All steps are pure or delegated; no business logic here.
@@ -22,16 +24,27 @@ class ReputationService {
    * @param {string} param0.entityType
    * @param {string} param0.value
    * @param {string} param0.queryId
+   * @param {string} [param0.bankCode]
    * @returns {Promise<Object>} { data, meta }
    */
-  static async check({ entityType, value, queryId }) {
+  static async check({ entityType, value, queryId, bankCode }) {
     // Resolve normalizer
     const normalizer = EntityResolver.resolve(entityType);
     const normalized = normalizer.normalize(value);
 
-    // Hash the normalized value (same strategy as fraud_entities.value_hash)
-    const crypto = require('crypto');
-    const hash = crypto.createHash('sha256').update(normalized).digest('hex');
+    // Hash normalized values consistently using our crypto helpers
+    let hash;
+    if (entityType === 'phone') {
+      hash = hashPhone(normalized);
+    } else if (entityType === 'account') {
+      const parts = value.split(':');
+      const extractedBank = parts.length > 1 ? parts[0] : (bankCode || 'UNKNOWN');
+      const extractedAccount = parts.length > 1 ? parts[1] : value;
+      const cleanAccount = extractedAccount.replace(/[^0-9]/g, '');
+      hash = hashAccount(cleanAccount, extractedBank);
+    } else {
+      hash = hashInput(`${entityType}:${normalized}`);
+    }
 
     // Cache lookup
     const cacheKey = `${entityType}:${hash}`;

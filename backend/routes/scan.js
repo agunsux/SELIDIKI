@@ -13,11 +13,11 @@ router.post('/message', async (req, res) => {
     const { message, user_hash } = req.body;
 
     if (!message || typeof message !== 'string') {
-      return res.status(400).json({ error: 'Field "message" wajib diisi' });
+      return res.apiError('Field "message" wajib diisi', 'Validasi gagal', 400);
     }
 
     if (message.length > 5000) {
-      return res.status(400).json({ error: 'Pesan terlalu panjang (max 5000 karakter)' });
+      return res.apiError('Pesan terlalu panjang (max 5000 karakter)', 'Validasi gagal', 400);
     }
 
     const result = await analyzeWithGemini({
@@ -35,14 +35,10 @@ router.post('/message', async (req, res) => {
       });
     }
 
-    res.json({
-      success: true,
-      data: result,
-      analyzed_at: new Date().toISOString(),
-    });
+    res.apiSuccess(result, 'Analisis pesan berhasil');
   } catch (err) {
     console.error('Scan message error:', err);
-    res.status(500).json({ error: 'Gagal menganalisis pesan' });
+    res.apiError(err.message, 'Gagal menganalisis pesan', 500);
   }
 });
 
@@ -55,7 +51,7 @@ router.post('/url', async (req, res) => {
     const { url, user_hash } = req.body;
 
     if (!url || typeof url !== 'string') {
-      return res.status(400).json({ error: 'Field "url" wajib diisi' });
+      return res.apiError('Field "url" wajib diisi', 'Validasi gagal', 400);
     }
 
     // Basic URL validation
@@ -63,7 +59,7 @@ router.post('/url', async (req, res) => {
     try {
       parsedUrl = new URL(url);
     } catch {
-      return res.status(400).json({ error: 'Format URL tidak valid' });
+      return res.apiError('Format URL tidak valid', 'Validasi gagal', 400);
     }
 
     const result = await analyzeWithGemini({
@@ -81,15 +77,17 @@ router.post('/url', async (req, res) => {
       });
     }
 
-    res.json({
-      success: true,
-      data: result,
-      domain: parsedUrl.hostname,
-      analyzed_at: new Date().toISOString(),
-    });
+    res.apiSuccess(
+      {
+        ...result,
+        domain: parsedUrl.hostname,
+      },
+      'Analisis URL berhasil',
+      { domain: parsedUrl.hostname }
+    );
   } catch (err) {
     console.error('Scan URL error:', err);
-    res.status(500).json({ error: 'Gagal menganalisis URL' });
+    res.apiError(err.message, 'Gagal menganalisis URL', 500);
   }
 });
 
@@ -102,12 +100,11 @@ router.post('/screenshot', async (req, res) => {
     const { image_base64, user_hash } = req.body;
 
     if (!image_base64) {
-      return res.status(400).json({ error: 'Field "image_base64" wajib diisi' });
+      return res.apiError('Field "image_base64" wajib diisi', 'Validasi gagal', 400);
     }
 
-    // Check file size (max 4MB base64 ≈ 3MB image)
-    if (image_base64.length > 5_500_000) {
-      return res.status(400).json({ error: 'Ukuran gambar terlalu besar (max 4MB)' });
+    if (image_base64.length > 5500000) {
+      return res.apiError('Ukuran gambar terlalu besar (max 4MB)', 'Validasi gagal', 400);
     }
 
     const result = await analyzeWithGemini({
@@ -125,14 +122,10 @@ router.post('/screenshot', async (req, res) => {
       });
     }
 
-    res.json({
-      success: true,
-      data: result,
-      analyzed_at: new Date().toISOString(),
-    });
+    res.apiSuccess(result, 'Analisis screenshot berhasil');
   } catch (err) {
     console.error('Scan screenshot error:', err);
-    res.status(500).json({ error: 'Gagal menganalisis screenshot' });
+    res.apiError(err.message, 'Gagal menganalisis screenshot', 500);
   }
 });
 

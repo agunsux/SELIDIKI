@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:selidiki/core/router/app_routes.dart';
+import 'package:selidiki/features/auth/presentation/pages/splash_page.dart';
 import 'package:selidiki/features/auth/presentation/pages/onboarding_page.dart';
 import 'package:selidiki/features/auth/presentation/pages/auth_page.dart';
 import 'package:selidiki/features/dashboard/presentation/pages/home_page.dart';
@@ -17,10 +18,15 @@ import 'package:selidiki/shared/widgets/main_shell.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: AppRoutes.onboarding,
+    initialLocation: AppRoutes.splash,
     debugLogDiagnostics: true,
     routes: [
-      // ─ Onboarding & Auth (no shell)
+      // ─ Splash, Onboarding & Auth (no shell)
+      GoRoute(
+        path: AppRoutes.splash,
+        name: 'splash',
+        builder: (context, state) => const SplashPage(),
+      ),
       GoRoute(
         path: AppRoutes.onboarding,
         name: 'onboarding',

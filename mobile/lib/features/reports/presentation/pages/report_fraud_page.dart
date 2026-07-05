@@ -3,7 +3,22 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:selidiki/core/network/api_client.dart';
+import 'package:dio/dio.dart';
 import 'package:selidiki/core/theme/app_theme.dart';
+
+const List<Map<String, String>> _banks = [
+  {'code': 'BCA', 'name': 'Bank Central Asia (BCA)'},
+  {'code': 'BRI', 'name': 'Bank Rakyat Indonesia (BRI)'},
+  {'code': 'MANDIRI', 'name': 'Bank Mandiri'},
+  {'code': 'BNI', 'name': 'Bank Negara Indonesia (BNI)'},
+  {'code': 'CIMB', 'name': 'CIMB Niaga'},
+  {'code': 'JAGO', 'name': 'Bank Jago'},
+  {'code': 'OVO', 'name': 'OVO (Finansial)'},
+  {'code': 'GOPAY', 'name': 'GoPay'},
+  {'code': 'DANA', 'name': 'DANA'},
+  {'code': 'SHOPEEPAY', 'name': 'ShopeePay'},
+];
 
 const List<Map<String, dynamic>> _fraudCategories = [
   {'id': 'marketplace_scam', 'label': 'Scam Marketplace', 'icon': Icons.shopping_bag_outlined, 'color': Color(0xFF3B82F6)},
@@ -37,6 +52,7 @@ class _ReportFraudPageState extends ConsumerState<ReportFraudPage> {
   final _targetController = TextEditingController();
   final _descriptionController = TextEditingController();
   String? _evidencePath;
+  String? _selectedBankCode;
   bool _isSubmitting = false;
   bool _consentGiven = false;
 
@@ -127,6 +143,40 @@ class _ReportFraudPageState extends ConsumerState<ReportFraudPage> {
 
         // Target value
         if (_selectedTargetType != null) ...[
+          if (_selectedTargetType == 'account') ...[
+            const Text('Pilih Bank', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: _showBankSelector,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardDark,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.account_balance_outlined, color: AppTheme.textMuted, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _selectedBankCode != null
+                            ? _banks.firstWhere((b) => b['code'] == _selectedBankCode)['name']!
+                            : 'Pilih bank...',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: _selectedBankCode != null ? AppTheme.textPrimary : AppTheme.textMuted,
+                        ),
+                      ),
+                    ),
+                    const Icon(Icons.keyboard_arrow_down, color: AppTheme.textMuted, size: 20),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           Text(
             _targetLabel(_selectedTargetType!),
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
@@ -272,6 +322,8 @@ class _ReportFraudPageState extends ConsumerState<ReportFraudPage> {
               const Text('Ringkasan Laporan', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
               const SizedBox(height: 12),
               _summaryRow('Target', _targetController.text.isEmpty ? '-' : _targetController.text),
+              if (_selectedTargetType == 'account' && _selectedBankCode != null)
+                _summaryRow('Bank', _selectedBankCode!),
               _summaryRow('Tipe', _selectedTargetType ?? '-'),
               _summaryRow('Kategori', _selectedCategory ?? '-'),
             ],
@@ -408,6 +460,64 @@ class _ReportFraudPageState extends ConsumerState<ReportFraudPage> {
     );
   }
 
+  void _showBankSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.surfaceDark,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      isScrollControlled: true,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.6,
+          maxChildSize: 0.9,
+          builder: (context, scroll) => Column(
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 16),
+                decoration: BoxDecoration(color: AppTheme.textDisabled, borderRadius: BorderRadius.circular(2)),
+              ),
+              const Text('Pilih Bank', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+              const SizedBox(height: 8),
+              Expanded(
+                child: ListView.builder(
+                  controller: scroll,
+                  itemCount: _banks.length,
+                  itemBuilder: (context, i) {
+                    final bank = _banks[i];
+                    return ListTile(
+                      title: Text(bank['name']!, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14)),
+                      leading: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: AppTheme.cardDark2,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: Text(
+                            bank['code']!.substring(0, 2),
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.primaryBlue),
+                          ),
+                        ),
+                      ),
+                      onTap: () {
+                        setState(() => _selectedBankCode = bank['code']);
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _pickEvidence() async {
     final picker = ImagePicker();
     final image = await picker.pickImage(source: ImageSource.gallery);
@@ -438,10 +548,59 @@ class _ReportFraudPageState extends ConsumerState<ReportFraudPage> {
 
   Future<void> _submit() async {
     setState(() => _isSubmitting = true);
-    await Future.delayed(const Duration(seconds: 2));
-    if (mounted) {
+
+    try {
+      String? evidenceUrl;
+      
+      // 1. Upload evidence file if selected
+      if (_evidencePath != null) {
+        final filename = _evidencePath!.split('/').last;
+        final file = await MultipartFile.fromFile(_evidencePath!, filename: filename);
+        final formData = FormData.fromMap({
+          'evidence': file,
+        });
+
+        final uploadResponse = await apiClient.post(
+          '/report/evidence/upload',
+          data: formData,
+        );
+
+        if (uploadResponse.statusCode == 200) {
+          evidenceUrl = uploadResponse.data['evidence_url'] as String;
+        } else {
+          throw Exception(uploadResponse.data['error'] ?? 'Gagal mengunggah bukti');
+        }
+      }
+
+      // 2. Submit report
+      final response = await apiClient.post('/report', data: {
+        'target_type': _selectedTargetType,
+        'target': _targetController.text.trim(),
+        'category': _selectedCategory,
+        'description': _descriptionController.text.trim(),
+        'evidence_url': evidenceUrl,
+        'bank_code': _selectedBankCode,
+      });
+
+      if (response.statusCode == 200) {
+        final trackingId = response.data['tracking_id'] as String;
+        if (mounted) {
+          setState(() => _isSubmitting = false);
+          context.go('/report/success', extra: {'tracking_id': trackingId});
+        }
+      } else {
+        throw Exception(response.data['error'] ?? 'Gagal mengirim laporan');
+      }
+    } catch (e) {
       setState(() => _isSubmitting = false);
-      context.go('/report/success', extra: {'tracking_id': 'SLD-${DateTime.now().millisecondsSinceEpoch}'});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: AppTheme.dangerRed,
+          ),
+        );
+      }
     }
   }
 

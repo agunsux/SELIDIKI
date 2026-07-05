@@ -9,11 +9,11 @@ const config = require('../config/reputationConfig');
  * POST /api/v1/reputation/check
  */
 exports.check = async (req, res, next) => {
-  const queryId = uuidv4();
+  const queryId = req.headers['x-request-id'] || uuidv4();
   const startTime = Date.now();
   try {
-    const { entityType, value } = req.body;
-    const result = await ReputationService.check({ entityType, value, queryId });
+    const { entityType, value, bankCode } = req.body;
+    const result = await ReputationService.check({ entityType, value, queryId, bankCode });
     const latency = Date.now() - startTime;
     // log lookup
     logger.info('reputation_lookup', {
@@ -22,19 +22,20 @@ exports.check = async (req, res, next) => {
       latency,
       cacheHit: result.meta.cacheHit,
     });
-    res.json({
-      success: true,
-      data: result.data,
-      meta: {
+    
+    res.apiSuccess(
+      result.data,
+      'Pengecekan reputasi berhasil',
+      {
         queryId,
         generatedAt: new Date().toISOString(),
         engineVersion: config.ENGINE_VERSION,
         ...result.meta,
-      },
-    });
+      }
+    );
   } catch (err) {
     logger.error('reputation_error', { queryId, error: err.message, stack: err.stack });
-    next(err);
+    res.apiError(err.message, 'Gagal memeriksa reputasi', 500, { queryId });
   }
 };
 
@@ -44,13 +45,13 @@ exports.check = async (req, res, next) => {
 exports.health = async (req, res) => {
   const dbStatus = ReputationService.checkDatabaseConnection();
   const cacheStatus = ReputationService.checkCacheConnection();
-  res.json({
-    success: true,
-    data: {
+  res.apiSuccess(
+    {
       status: 'ok',
       database: dbStatus ? 'connected' : 'error',
       cache: cacheStatus ? 'connected' : 'error',
       engineVersion: config.ENGINE_VERSION,
     },
-  });
+    'Layanan reputasi sehat'
+  );
 };

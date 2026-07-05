@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:selidiki/core/network/api_client.dart';
 import 'package:selidiki/core/theme/app_theme.dart';
 
 // List of Indonesian banks
@@ -402,7 +403,7 @@ class _AccountCheckerPageState extends ConsumerState<AccountCheckerPage> {
       return;
     }
 
-    final account = _accountController.text.trim();
+    final account = _accountController.text.trim().replaceAll(RegExp(r'[^0-9]'), '');
     if (account.length < 8) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Masukkan nomor rekening yang valid'), backgroundColor: AppTheme.warningAmber),
@@ -411,17 +412,40 @@ class _AccountCheckerPageState extends ConsumerState<AccountCheckerPage> {
     }
 
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1));
-    setState(() {
-      _isLoading = false;
-      _result = {
-        'bank': _selectedBank!['name']!,
+
+    try {
+      final bankCode = _selectedBank!['code']!;
+      final response = await apiClient.get('/check/account', queryParameters: {
+        'bank': bankCode,
         'account': account,
-        'status': 'HIGH_RISK',
-        'reports': 89,
-        'risk_score': 85,
-      };
-    });
+      });
+
+      if (response.statusCode == 200) {
+        final resData = response.data['data'] as Map<String, dynamic>;
+        setState(() {
+          _isLoading = false;
+          _result = {
+            'bank': _selectedBank!['name']!,
+            'account': account,
+            'status': resData['status'] ?? 'SAFE',
+            'reports': resData['reports_count'] ?? 0,
+            'risk_score': resData['risk_score'] ?? 0,
+          };
+        });
+      } else {
+        throw Exception(response.data['error'] ?? 'Gagal memeriksa rekening');
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: AppTheme.dangerRed,
+          ),
+        );
+      }
+    }
   }
 
   String _maskAccount(String account) {
@@ -430,36 +454,36 @@ class _AccountCheckerPageState extends ConsumerState<AccountCheckerPage> {
   }
 
   Color _riskColor(String status) {
-    switch (status.toUpperCase()) {
-      case 'HIGH_RISK':
-        return AppTheme.dangerRed;
-      case 'WARNING':
-        return AppTheme.warningAmber;
-      default:
-        return AppTheme.safeGreen;
+    final s = status.toUpperCase();
+    if (s.contains('HIGH') || s.contains('DANGER')) {
+      return AppTheme.dangerRed;
     }
+    if (s.contains('WARNING') || s.contains('WARN') || s.contains('MEDIUM')) {
+      return AppTheme.warningAmber;
+    }
+    return AppTheme.safeGreen;
   }
 
   IconData _riskIcon(String status) {
-    switch (status.toUpperCase()) {
-      case 'HIGH_RISK':
-        return Icons.dangerous_rounded;
-      case 'WARNING':
-        return Icons.warning_rounded;
-      default:
-        return Icons.verified_rounded;
+    final s = status.toUpperCase();
+    if (s.contains('HIGH') || s.contains('DANGER')) {
+      return Icons.dangerous_rounded;
     }
+    if (s.contains('WARNING') || s.contains('WARN') || s.contains('MEDIUM')) {
+      return Icons.warning_rounded;
+    }
+    return Icons.verified_rounded;
   }
 
   String _statusLabel(String status) {
-    switch (status.toUpperCase()) {
-      case 'HIGH_RISK':
-        return '🔴 RISIKO TINGGI';
-      case 'WARNING':
-        return '🟡 PERLU WASPADA';
-      default:
-        return '🟢 AMAN';
+    final s = status.toUpperCase();
+    if (s.contains('HIGH') || s.contains('DANGER')) {
+      return '🔴 RISIKO TINGGI';
     }
+    if (s.contains('WARNING') || s.contains('WARN') || s.contains('MEDIUM')) {
+      return '🟡 PERLU WASPADA';
+    }
+    return '🟢 AMAN';
   }
 
   @override

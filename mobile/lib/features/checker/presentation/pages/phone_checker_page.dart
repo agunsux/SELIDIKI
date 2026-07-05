@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:selidiki/core/network/api_client.dart';
 import 'package:selidiki/core/theme/app_theme.dart';
 
 class PhoneCheckerPage extends ConsumerStatefulWidget {
@@ -326,60 +327,82 @@ class _PhoneCheckerPageState extends ConsumerState<PhoneCheckerPage> {
 
     setState(() => _isLoading = true);
 
-    await Future.delayed(const Duration(seconds: 1));
-
-    // Mock result
-    setState(() {
-      _isLoading = false;
-      _result = {
-        'phone': phone,
-        'risk_score': 78,
-        'status': 'HIGH',
-        'reports': 523,
-        'signals': [
-          {'label': 'Dilaporkan sebagai penipu', 'value': '523x', 'level': 'HIGH'},
-          {'label': 'Aktivitas meningkat 7 hari terakhir', 'value': '+340%', 'level': 'HIGH'},
-          {'label': 'Kategori dominan', 'value': 'Phishing Bank', 'level': 'HIGH'},
-          {'label': 'Pertama dilaporkan', 'value': '3 bulan lalu', 'level': 'LOW'},
-          {'label': 'Provider', 'value': 'Telkomsel', 'level': 'LOW'},
-        ],
-      };
-    });
+    try {
+      final response = await apiClient.get('/check/phone/$phone');
+      if (response.statusCode == 200) {
+        final resData = response.data['data'] as Map<String, dynamic>;
+        
+        setState(() {
+          _isLoading = false;
+          _result = {
+            'phone': phone,
+            'risk_score': resData['risk_score'] ?? 0,
+            'status': resData['status'] ?? 'SAFE',
+            'reports': resData['reports_count'] ?? 0,
+            'signals': (resData['signals'] as List?)
+                ?.map((s) => s as Map<String, dynamic>)
+                .toList() ?? 
+                [
+                  {
+                    'label': 'Total Laporan Komunitas',
+                    'value': '${resData['reports_count'] ?? 0}x',
+                    'level': (resData['risk_score'] ?? 0) >= 70 ? 'HIGH' : ((resData['risk_score'] ?? 0) >= 40 ? 'WARNING' : 'SAFE')
+                  },
+                  if (resData['category'] != null && resData['category'].toString().isNotEmpty) {
+                    'label': 'Kategori Utama',
+                    'value': resData['category'],
+                    'level': 'WARNING'
+                  }
+                ],
+          };
+        });
+      } else {
+        throw Exception(response.data['error'] ?? 'Gagal memeriksa nomor HP');
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: AppTheme.dangerRed,
+          ),
+        );
+      }
+    }
   }
 
   Color _riskColor(String status) {
-    switch (status.toUpperCase()) {
-      case 'HIGH':
-      case 'DANGEROUS':
-        return AppTheme.dangerRed;
-      case 'MEDIUM':
-      case 'WARNING':
-        return AppTheme.warningAmber;
-      default:
-        return AppTheme.safeGreen;
+    final s = status.toUpperCase();
+    if (s.contains('HIGH') || s.contains('DANGER')) {
+      return AppTheme.dangerRed;
     }
+    if (s.contains('WARNING') || s.contains('WARN') || s.contains('MEDIUM')) {
+      return AppTheme.warningAmber;
+    }
+    return AppTheme.safeGreen;
   }
 
   IconData _riskIcon(String status) {
-    switch (status.toUpperCase()) {
-      case 'HIGH':
-        return Icons.dangerous_rounded;
-      case 'MEDIUM':
-        return Icons.warning_rounded;
-      default:
-        return Icons.verified_rounded;
+    final s = status.toUpperCase();
+    if (s.contains('HIGH') || s.contains('DANGER')) {
+      return Icons.dangerous_rounded;
     }
+    if (s.contains('WARNING') || s.contains('WARN') || s.contains('MEDIUM')) {
+      return Icons.warning_rounded;
+    }
+    return Icons.verified_rounded;
   }
 
   String _statusLabel(String status) {
-    switch (status.toUpperCase()) {
-      case 'HIGH':
-        return '🔴 RISIKO TINGGI';
-      case 'MEDIUM':
-        return '🟡 PERLU WASPADA';
-      default:
-        return '🟢 AMAN';
+    final s = status.toUpperCase();
+    if (s.contains('HIGH') || s.contains('DANGER')) {
+      return '🔴 RISIKO TINGGI';
     }
+    if (s.contains('WARNING') || s.contains('WARN') || s.contains('MEDIUM')) {
+      return '🟡 PERLU WASPADA';
+    }
+    return '🟢 AMAN';
   }
 
   @override

@@ -28,14 +28,15 @@ class ReportRepository {
           await client.query(updateQuery, [reportData.targetHash]);
         }
       } else if (reportData.targetType === 'account') {
+        const bankCode = (reportData.bankCode || 'UNKNOWN').toUpperCase();
         const checkQuery = 'SELECT id, reports_count FROM bank_account_profiles WHERE account_hash = $1 AND bank_code = $2';
-        const { rows } = await client.query(checkQuery, [reportData.targetHash, 'UNKNOWN']);
+        const { rows } = await client.query(checkQuery, [reportData.targetHash, bankCode]);
         if (rows.length === 0) {
           const insertQuery = `
             INSERT INTO bank_account_profiles (account_hash, bank_code, risk_score, reports_count, last_activity, first_reported, updated_at)
             VALUES ($1, $2, 5, 1, NOW(), NOW(), NOW())
           `;
-          await client.query(insertQuery, [reportData.targetHash, 'UNKNOWN']);
+          await client.query(insertQuery, [reportData.targetHash, bankCode]);
         } else {
           const updateQuery = `
             UPDATE bank_account_profiles
@@ -44,7 +45,7 @@ class ReportRepository {
                 updated_at = NOW()
             WHERE account_hash = $1 AND bank_code = $2
           `;
-          await client.query(updateQuery, [reportData.targetHash, 'UNKNOWN']);
+          await client.query(updateQuery, [reportData.targetHash, bankCode]);
         }
       }
 

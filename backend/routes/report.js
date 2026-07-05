@@ -1,7 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { hashInput } = require('../utils/crypto');
+const multer = require('multer');
+const { hashInput, hashPhone, hashAccount } = require('../utils/crypto');
+const { verifyFirebaseToken } = require('../middleware/auth');
 const ReportRepository = require('../repositories/ReportRepository');
+const StorageService = require('../services/storageService');
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 const VALID_TARGET_TYPES = ['phone', 'account', 'link', 'whatsapp'];
 const VALID_CATEGORIES = [
@@ -19,7 +24,7 @@ const VALID_CATEGORIES = [
  * POST /api/v1/report
  * Submit fraud report
  */
-router.post('/', async (req, res) => {
+router.post('/', verifyFirebaseToken, async (req, res) => {
   try {
     const {
       target_type,
@@ -28,22 +33,30 @@ router.post('/', async (req, res) => {
       description,
       evidence_url,
       reporter_hash,
+      bank_code,
     } = req.body;
 
     // Validation
     if (!target_type || !VALID_TARGET_TYPES.includes(target_type)) {
-      return res.status(400).json({ error: 'target_type tidak valid' });
+      return res.apiError('target_type tidak valid', 'Validasi gagal', 400);
     }
 
     if (!target || typeof target !== 'string' || target.trim().length < 3) {
-      return res.status(400).json({ error: 'Field "target" wajib diisi' });
+      return res.apiError('Field "target" wajib diisi', 'Validasi gagal', 400);
     }
 
     if (!category || !VALID_CATEGORIES.includes(category)) {
-      return res.status(400).json({ error: 'category tidak valid' });
+      return res.apiError('category tidak valid', 'Validasi gagal', 400);
     }
 
-    const targetHash = hashInput(target.trim());
+    let targetHash;
+    if (target_type === 'phone') {
+      targetHash = hashPhone(target);
+    } else if (target_type === 'account') {
+      targetHash = hashAccount(target, bank_code || 'UNKNOWN');
+    } else {
+      targetHash = hashInput(`${target_type}:${target.trim()}`);
+    }
     const trackingId = `SLD-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
 
     const report = await ReportRepository.insert({
@@ -53,19 +66,21 @@ router.post('/', async (req, res) => {
       category,
       description: description?.slice(0, 1000),
       evidenceUrl: evidence_url,
-      reporterHash: reporter_hash,
+      reporterHash: req.user.phoneHash || reporter_hash || null,
       confidence: 50,
+      bankCode: bank_code,
     });
 
-    res.json({
-      success: true,
-      tracking_id: trackingId,
-      message: 'Laporan berhasil dikirim. Terima kasih telah melindungi komunitas!',
-      submitted_at: new Date().toISOString(),
-    });
+    res.apiSuccess(
+      {
+        tracking_id: trackingId,
+        submitted_at: new Date().toISOString(),
+      },
+      'Laporan berhasil dikirim. Terima kasih telah melindungi komunitas!'
+    );
   } catch (err) {
     console.error('Report error:', err);
-    res.status(500).json({ error: 'Gagal mengirim laporan' });
+    res.apiError(err.message, 'Gagal mengirim laporan', 500);
   }
 });
 
@@ -81,14 +96,36 @@ router.get('/trending', async (req, res) => {
       category,
     });
 
-    res.json({
-      success: true,
-      data: reports,
-      fetched_at: new Date().toISOString(),
-    });
+    res.apiSuccess(reports, 'Trending laporan berhasil diambil');
   } catch (err) {
     console.error('Trending error:', err);
-    res.status(500).json({ error: 'Gagal mengambil data trending' });
+    res.apiError(err.message, 'Gagal mengambil data trending', 500);
+  }
+});
+
+/**
+ * POST /api/v1/report/evidence/upload
+ * Upload evidence file (image/pdf)
+ */
+router.post('/evidence/upload', verifyFirebaseToken, upload.single('evidence'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.apiError('File evidence tidak ditemukan', 'Upload gagal', 400);
+    }
+
+    const fileUrl = await StorageService.upload(req.file);
+
+    res.apiSuccess(
+      {
+        evidence_url: fileUrl,
+        filename: req.file.originalname,
+        uploaded_at: new Date().toISOString(),
+      },
+      'Evidence berhasil diunggah'
+    );
+  } catch (err) {
+    console.error('Evidence upload error:', err);
+    res.apiError(err.message, 'Gagal mengunggah evidence', 400);
   }
 });
 

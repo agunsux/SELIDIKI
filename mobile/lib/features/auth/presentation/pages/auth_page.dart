@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:selidiki/core/network/api_client.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:selidiki/core/router/app_routes.dart';
 import 'package:selidiki/core/theme/app_theme.dart';
 import 'package:selidiki/features/auth/presentation/providers/auth_provider.dart';
@@ -320,24 +322,61 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     setState(() => _isLoading = true);
 
     try {
+      final phone = _phoneController.text.trim().replaceAll(RegExp(r'[^0-9]'), '');
       if (!_otpSent) {
         // Send OTP
-        await Future.delayed(const Duration(seconds: 1)); // Simulated
-        setState(() {
-          _otpSent = true;
-          _isLoading = false;
-        });
+        final response = await apiClient.post('/user/auth/send-otp', data: {'phone': phone});
+        if (response.statusCode == 200) {
+          final resData = response.data as Map<String, dynamic>;
+          setState(() {
+            _otpSent = true;
+            _isLoading = false;
+          });
+          if (resData['otp'] != null && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Dev Mode OTP: ${resData['otp']} (Salin kode ini)'),
+                backgroundColor: AppTheme.primaryBlue,
+                duration: const Duration(seconds: 8),
+              ),
+            );
+          }
+        } else {
+          throw Exception(response.data['error'] ?? 'Gagal mengirim OTP');
+        }
       } else {
         // Verify OTP
-        await Future.delayed(const Duration(seconds: 1)); // Simulated
-        if (mounted) context.go(AppRoutes.home);
+        final otp = _otpController.text.trim();
+        final response = await apiClient.post('/user/auth/verify-otp', data: {'phone': phone, 'otp': otp});
+        if (response.statusCode == 200) {
+          final resData = response.data as Map<String, dynamic>;
+          final token = resData['token'] as String;
+          final userHash = resData['user_hash'] as String;
+          final userId = resData['user']?['id'] as String? ?? '';
+
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('auth_token', token);
+          await prefs.setString('user_hash', userHash);
+
+          ref.read(authStateProvider.notifier).state = AuthState(
+            userId: userId,
+            phoneHash: userHash,
+            isPremium: false,
+          );
+
+          if (mounted) {
+            context.go(AppRoutes.home);
+          }
+        } else {
+          throw Exception(response.data['error'] ?? 'Kode OTP salah');
+        }
       }
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text(e.toString().replaceAll('Exception: ', '')),
             backgroundColor: AppTheme.dangerRed,
           ),
         );

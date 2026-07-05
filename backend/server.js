@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 const { initializeApp, cert } = require('firebase-admin/app');
@@ -28,6 +29,7 @@ try {
 
 // ── Middleware ────────────────────────────────────────────
 app.use(helmet());
+app.use(compression());
 app.use(cors({
   origin: [
     'https://selidiki.id',
@@ -40,6 +42,9 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' })); // For image uploads
 app.use(morgan('combined'));
+
+const responseFormatter = require('./middleware/responseFormatter');
+app.use(responseFormatter);
 
 // ── Rate Limiting ─────────────────────────────────────────
 const apiLimiter = rateLimit({

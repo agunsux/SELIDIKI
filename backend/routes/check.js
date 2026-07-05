@@ -14,7 +14,7 @@ router.get('/phone/:number', async (req, res) => {
     const cleaned = number.replace(/[^0-9]/g, '');
 
     if (cleaned.length < 8 || cleaned.length > 15) {
-      return res.status(400).json({ error: 'Nomor HP tidak valid' });
+      return res.apiError('Nomor HP tidak valid', 'Validasi gagal', 400);
     }
 
     // Normalize to +62 format
@@ -34,9 +34,8 @@ router.get('/phone/:number', async (req, res) => {
       firstReported: null,
     };
 
-    res.json({
-      success: true,
-      data: {
+    res.apiSuccess(
+      {
         phone_masked: '+62 ' + maskPhone(cleaned),
         phone_hash: phoneHash,
         risk_score: profile.riskScore,
@@ -47,11 +46,11 @@ router.get('/phone/:number', async (req, res) => {
         last_activity: profile.lastActivity,
         first_reported: profile.firstReported,
       },
-      checked_at: new Date().toISOString(),
-    });
+      'Pengecekan nomor HP berhasil'
+    );
   } catch (err) {
     console.error('Check phone error:', err);
-    res.status(500).json({ error: 'Gagal memeriksa nomor HP' });
+    res.apiError(err.message, 'Gagal memeriksa nomor HP', 500);
   }
 });
 
@@ -65,12 +64,12 @@ router.get('/account', async (req, res) => {
     const { bank, account } = req.query;
 
     if (!bank || !account) {
-      return res.status(400).json({ error: 'Parameter "bank" dan "account" wajib diisi' });
+      return res.apiError('Parameter "bank" dan "account" wajib diisi', 'Validasi gagal', 400);
     }
 
     const cleanAccount = account.replace(/[^0-9]/g, '');
     if (cleanAccount.length < 8 || cleanAccount.length > 20) {
-      return res.status(400).json({ error: 'Nomor rekening tidak valid' });
+      return res.apiError('Nomor rekening tidak valid', 'Validasi gagal', 400);
     }
 
     const accountHash = hashAccount(cleanAccount, bank.toUpperCase());
@@ -80,9 +79,8 @@ router.get('/account', async (req, res) => {
       categories: [],
     };
 
-    res.json({
-      success: true,
-      data: {
+    res.apiSuccess(
+      {
         account_masked: maskAccount(cleanAccount),
         bank: bank.toUpperCase(),
         account_hash: accountHash,
@@ -91,11 +89,11 @@ router.get('/account', async (req, res) => {
         reports_count: profile.reportsCount,
         categories: profile.categories,
       },
-      checked_at: new Date().toISOString(),
-    });
+      'Pengecekan rekening berhasil'
+    );
   } catch (err) {
     console.error('Check account error:', err);
-    res.status(500).json({ error: 'Gagal memeriksa rekening' });
+    res.apiError(err.message, 'Gagal memeriksa rekening', 500);
   }
 });
 

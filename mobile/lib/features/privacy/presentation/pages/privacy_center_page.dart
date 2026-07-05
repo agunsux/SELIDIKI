@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
+import 'package:selidiki/core/network/api_client.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:selidiki/core/router/app_routes.dart';
 import 'package:selidiki/core/theme/app_theme.dart';
 
 class PrivacyCenterPage extends StatefulWidget {
@@ -320,7 +324,47 @@ class _PrivacyCenterPageState extends State<PrivacyCenterPage> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () async {
+              Navigator.pop(context); // close confirm dialog
+              
+              // Show progress indicator
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(child: CircularProgressIndicator(color: AppTheme.primaryBlue)),
+              );
+
+              try {
+                final prefs = await SharedPreferences.getInstance();
+                final userHash = prefs.getString('user_hash');
+                
+                if (userHash != null) {
+                  final response = await apiClient.delete('/user/data', data: {'user_hash': userHash});
+                  if (response.statusCode != 200) {
+                    throw Exception(response.data['error'] ?? 'Gagal menghapus data di server');
+                  }
+                }
+                
+                // Clear preferences and log out
+                await prefs.remove('auth_token');
+                await prefs.remove('user_hash');
+                
+                if (mounted) {
+                  Navigator.pop(context); // close progress dialog
+                  context.go(AppRoutes.auth); // navigate to login
+                }
+              } catch (e) {
+                if (mounted) {
+                  Navigator.pop(context); // close progress dialog
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Gagal menghapus data: ${e.toString().replaceAll('Exception: ', '')}'),
+                      backgroundColor: AppTheme.dangerRed,
+                    ),
+                  );
+                }
+              }
+            },
             child: const Text('Hapus Permanen', style: TextStyle(color: AppTheme.dangerRed, fontWeight: FontWeight.w700)),
           ),
         ],

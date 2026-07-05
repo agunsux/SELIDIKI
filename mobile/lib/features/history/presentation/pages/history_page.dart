@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:selidiki/core/network/api_client.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:selidiki/core/theme/app_theme.dart';
 
 class HistoryPage extends StatefulWidget {
@@ -11,62 +13,104 @@ class HistoryPage extends StatefulWidget {
 
 class _HistoryPageState extends State<HistoryPage> {
   String _filter = 'all';
+  List<Map<String, dynamic>> _history = [];
+  bool _isLoading = true;
+  String? _userHash;
 
-  final List<Map<String, dynamic>> _history = [
-    {
-      'type': 'message',
-      'input': 'Selamat! Anda memenangkan hadiah 50 juta...',
-      'risk_score': 92,
-      'status': 'DANGEROUS',
-      'timestamp': '2 jam lalu',
-      'icon': Icons.message_outlined,
-    },
-    {
-      'type': 'phone',
-      'input': '+62 812-3456-7890',
-      'risk_score': 78,
-      'status': 'HIGH',
-      'timestamp': '5 jam lalu',
-      'icon': Icons.phone_outlined,
-    },
-    {
-      'type': 'url',
-      'input': 'https://bri-promo-hadiah.xyz/klaim',
-      'risk_score': 96,
-      'status': 'DANGEROUS',
-      'timestamp': 'Kemarin',
-      'icon': Icons.link,
-    },
-    {
-      'type': 'account',
-      'input': 'BCA ****7890',
-      'risk_score': 15,
-      'status': 'SAFE',
-      'timestamp': '2 hari lalu',
-      'icon': Icons.account_balance_outlined,
-    },
-    {
-      'type': 'message',
-      'input': 'Halo kak, ini adalah CS Tokopedia...',
-      'risk_score': 67,
-      'status': 'WARNING',
-      'timestamp': '3 hari lalu',
-      'icon': Icons.message_outlined,
-    },
-    {
-      'type': 'phone',
-      'input': '+62 21-500-500',
-      'risk_score': 5,
-      'status': 'SAFE',
-      'timestamp': '5 hari lalu',
-      'icon': Icons.phone_outlined,
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    setState(() => _isLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userHash = prefs.getString('user_hash');
+      _userHash = userHash;
+      if (userHash == null) {
+        setState(() {
+          _history = [];
+          _isLoading = false;
+        });
+        return;
+      }
+      final response = await apiClient.get('/user/history', queryParameters: {
+        'user_hash': userHash,
+      });
+
+      if (response.statusCode == 200) {
+        final resData = response.data['data'] as List?;
+        setState(() {
+          _history = resData?.map((item) {
+            final type = item['input_type'] as String? ?? 'phone';
+            IconData icon;
+            switch (type) {
+              case 'message':
+                icon = Icons.message_outlined;
+                break;
+              case 'url':
+                icon = Icons.link;
+                break;
+              case 'phone':
+                icon = Icons.phone_outlined;
+                break;
+              default:
+                icon = Icons.account_balance_outlined;
+            }
+
+            return {
+              'type': type,
+              'input': item['input_hash'] ?? item['category'] ?? 'Scan',
+              'risk_score': item['risk_score'] ?? 0,
+              'status': item['status'] ?? 'SAFE',
+              'timestamp': _formatTimestamp(item['created_at']),
+              'icon': icon,
+            };
+          }).toList() ?? [];
+          _isLoading = false;
+        });
+      } else {
+        throw Exception(response.data['error'] ?? 'Gagal mengambil riwayat');
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memuat riwayat: $e'), backgroundColor: AppTheme.dangerRed),
+        );
+      }
+    }
+  }
+
+  String _formatTimestamp(dynamic timestampStr) {
+    if (timestampStr == null) return '-';
+    try {
+      final dt = DateTime.parse(timestampStr.toString());
+      final diff = DateTime.now().difference(dt);
+      if (diff.inMinutes < 60) return '${diff.inMinutes} menit lalu';
+      if (diff.inHours < 24) return '${diff.inHours} jam lalu';
+      return '${diff.inDays} hari lalu';
+    } catch (_) {
+      return timestampStr.toString();
+    }
+  }
 
   List<Map<String, dynamic>> get _filtered {
     if (_filter == 'all') return _history;
-    if (_filter == 'dangerous') return _history.where((h) => h['status'] == 'DANGEROUS').toList();
-    if (_filter == 'safe') return _history.where((h) => h['status'] == 'SAFE').toList();
+    if (_filter == 'dangerous') {
+      return _history.where((h) {
+        final s = h['status'].toString().toUpperCase();
+        return s.contains('DANGER') || s.contains('HIGH');
+      }).toList();
+    }
+    if (_filter == 'safe') {
+      return _history.where((h) {
+        final s = h['status'].toString().toUpperCase();
+        return s.contains('SAFE');
+      }).toList();
+    }
     return _history;
   }
 
@@ -88,16 +132,18 @@ class _HistoryPageState extends State<HistoryPage> {
         children: [
           _buildFilterBar(),
           Expanded(
-            child: _filtered.isEmpty
-                ? _buildEmptyState()
-                : ListView.builder(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _filtered.length,
-                    itemBuilder: (context, i) {
-                      return _buildHistoryItem(_filtered[i], i).animate().fadeIn(duration: 300.ms, delay: (i * 60).ms);
-                    },
-                  ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryBlue))
+                : _filtered.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.builder(
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _filtered.length,
+                        itemBuilder: (context, i) {
+                          return _buildHistoryItem(_filtered[i], i).animate().fadeIn(duration: 300.ms, delay: (i * 60).ms);
+                        },
+                      ),
           ),
         ],
       ),
