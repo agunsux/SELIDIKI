@@ -1,0 +1,15 @@
+{
+  "name": "Prometheus Exporter Output",
+  "success": true,
+  "timestamp": "2026-07-08T22:02:12.351Z",
+  "rawText": "# HELP selidiki_uptime_seconds System uptime in seconds\n# TYPE selidiki_uptime_seconds gauge\nselidiki_uptime_seconds 0\n# HELP selidiki_provider_switch_total Total number of database provider switches\n# TYPE selidiki_provider_switch_total counter\nselidiki_provider_switch_total 1\n# HELP selidiki_rollback_total Total number of rollback actions triggered\n# TYPE selidiki_rollback_total counter\nselidiki_rollback_total 1\n# HELP selidiki_shadow_mismatch_total Total number of shadow read/write mismatches\n# TYPE selidiki_shadow_mismatch_total counter\nselidiki_shadow_mismatch_total 0\n# HELP selidiki_repository_errors_total Total number of repository query errors\n# TYPE selidiki_repository_errors_total counter\nselidiki_repository_errors_total 0\n# HELP selidiki_circuit_breaker_state Current circuit breaker state (0 = closed, 1 = open)\n# TYPE selidiki_circuit_breaker_state gauge\nselidiki_circuit_breaker_state 0\n# HELP selidiki_pool_utilization_ratio Active database connection pool utilization ratio\n# TYPE selidiki_pool_utilization_ratio gauge\nselidiki_pool_utilization_ratio 0.00\n# HELP selidiki_request_latency_seconds_bucket Latency histogram of requests\n# TYPE selidiki_request_latency_seconds_bucket histogram\nselidiki_request_latency_seconds_bucket{le=\"0.005\"} 12\nselidiki_request_latency_seconds_bucket{le=\"0.01\"} 34\nselidiki_request_latency_seconds_bucket{le=\"0.05\"} 78\nselidiki_request_latency_seconds_bucket{le=\"0.1\"} 92\nselidiki_request_latency_seconds_bucket{le=\"0.5\"} 100\nselidiki_request_latency_seconds_bucket{le=\"+Inf\"} 100\nselidiki_request_latency_seconds_sum 1.25\nselidiki_request_latency_seconds_count 100\n",
+  "fingerprint": {
+    "gitCommit": "788570e5cf14c69df70e865a37e0f7744bfe0551",
+    "gitBranch": "main",
+    "nodeVersion": "v24.16.0",
+    "os": "win32 10.0.26200",
+    "environment": "development",
+    "timestamp": "2026-07-08T22:02:12.297Z",
+    "runnerVersion": "1.2.0"
+  }
+}

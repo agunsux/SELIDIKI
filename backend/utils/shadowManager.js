@@ -217,7 +217,15 @@ module.exports = {
       avgLatencyMs: Math.round(metrics.totalLatencyMs / n),
     };
   },
-  resetMetrics() { Object.keys(metrics).forEach(k => metrics[k] = 0); },
+  resetMetrics() {
+    Object.keys(metrics).forEach(k => {
+      if (typeof metrics[k] === 'number') {
+        metrics[k] = 0;
+      } else if (typeof metrics[k] === 'object') {
+        metrics[k] = {};
+      }
+    });
+  },
 
   getSampleRate() { return SAMPLE_RATE; },
   getTimeoutMs() { return SHADOW_TIMEOUT_MS; },

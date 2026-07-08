@@ -1,0 +1,20 @@
+{
+  "name": "Idempotency Replay Validation",
+  "success": true,
+  "timestamp": "2026-07-08T22:02:12.339Z",
+  "durationMs": 0.007399999999961437,
+  "idempotent": true,
+  "replayErrors": {
+    "firstAttempt": null,
+    "secondAttempt": null
+  },
+  "fingerprint": {
+    "gitCommit": "788570e5cf14c69df70e865a37e0f7744bfe0551",
+    "gitBranch": "main",
+    "nodeVersion": "v24.16.0",
+    "os": "win32 10.0.26200",
+    "environment": "development",
+    "timestamp": "2026-07-08T22:02:12.297Z",
+    "runnerVersion": "1.2.0"
+  }
+}

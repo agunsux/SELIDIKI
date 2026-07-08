@@ -1,0 +1,19 @@
+{
+  "name": "Rollback Certification",
+  "success": true,
+  "timestamp": "2026-07-08T22:02:12.300Z",
+  "rollbackDurationMs": 0.008600000000001273,
+  "verificationDurationMs": 0.10509999999999309,
+  "totalDrillDurationMs": 0.11369999999999436,
+  "postRollbackPgOperations": 0,
+  "recoverySuccess": true,
+  "fingerprint": {
+    "gitCommit": "788570e5cf14c69df70e865a37e0f7744bfe0551",
+    "gitBranch": "main",
+    "nodeVersion": "v24.16.0",
+    "os": "win32 10.0.26200",
+    "environment": "development",
+    "timestamp": "2026-07-08T22:02:12.297Z",
+    "runnerVersion": "1.2.0"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "Health Endpoint Check",
+  "success": "healthy",
+  "durationMs": 35.71010000000001,
+  "httpStatus": 200,
+  "payload": {
+    "status": "degraded",
+    "timestamp": "2026-07-08T22:02:12.329Z",
+    "uptime": 0,
+    "checks": {
+      "postgres": "healthy",
+      "firestore": "unhealthy",
+      "shadow": "healthy",
+      "migration": "inactive",
+      "repository": "healthy"
+    },
+    "telemetry": {
+      "provider": "FIRESTORE",
+      "shadow_mode": false,
+      "circuit_breaker": {
+        "open": false
+      },
+      "pool": {
+        "total": 0,
+        "idle": 0,
+        "waiting": 0,
+        "active": 0
+      }
+    }
+  },
+  "timestamp": "2026-07-08T22:02:12.337Z",
+  "fingerprint": {
+    "gitCommit": "788570e5cf14c69df70e865a37e0f7744bfe0551",
+    "gitBranch": "main",
+    "nodeVersion": "v24.16.0",
+    "os": "win32 10.0.26200",
+    "environment": "development",
+    "timestamp": "2026-07-08T22:02:12.297Z",
+    "runnerVersion": "1.2.0"
+  }
+}

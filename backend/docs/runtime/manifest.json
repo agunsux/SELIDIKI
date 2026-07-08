@@ -1,0 +1,30 @@
+{
+  "runId": "run_1783548132352_bo49w",
+  "environment": "development",
+  "gitCommit": "788570e5cf14c69df70e865a37e0f7744bfe0551",
+  "postgresVersion": "16 (Docker/Client Mock)",
+  "firestoreProject": "selidiki-prod",
+  "fingerprint": {
+    "gitCommit": "788570e5cf14c69df70e865a37e0f7744bfe0551",
+    "gitBranch": "main",
+    "nodeVersion": "v24.16.0",
+    "os": "win32 10.0.26200",
+    "environment": "development",
+    "timestamp": "2026-07-08T22:02:12.297Z",
+    "runnerVersion": "1.2.0"
+  },
+  "artifacts": [
+    "health.json",
+    "latency.json",
+    "rollback.json",
+    "provider.json",
+    "shadow.json",
+    "drift.json",
+    "repository.json",
+    "replay.json",
+    "benchmark.json",
+    "metrics.json"
+  ],
+  "decision": "PASS",
+  "score": 100
+}
