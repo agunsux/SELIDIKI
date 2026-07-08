@@ -4,6 +4,7 @@ const PostgresReportRepository = require('./postgres/ReportRepository');
 const { compareObjects } = require('../utils/dbComparer');
 const { executeDualWrite } = require('../utils/dualWriteManager');
 const shadowManager = require('../utils/shadowManager');
+const { executeDualRead } = require('../utils/dualReadManager');
 const dbConfig = require('../config/databaseProvider');
 
 class ReportRepository {
@@ -49,16 +50,11 @@ class ReportRepository {
     }
 
     if (dbConfig.isDualRead()) {
-      const fsResult = await FirestoreReportRepository.findTrending({ limit, category });
-      try {
-        const pgResult = await PostgresReportRepository.findTrending({ limit, category });
-        if (fsResult[0] && pgResult[0]) {
-          compareObjects('ReportRepository.findTrending[0]', fsResult[0], pgResult[0]);
-        }
-      } catch (err) {
-        console.error('ReportRepository DUAL_READ Postgres error:', err.message);
-      }
-      return fsResult;
+      return executeDualRead('ReportRepository', 'findTrending',
+        () => FirestoreReportRepository.findTrending({ limit, category }),
+        () => PostgresReportRepository.findTrending({ limit, category }),
+        { type: 'report' }
+      );
     }
 
     return FirestoreReportRepository.findTrending({ limit, category });
@@ -66,6 +62,7 @@ class ReportRepository {
 }
 
 module.exports = ReportRepository;
+
 
 
 

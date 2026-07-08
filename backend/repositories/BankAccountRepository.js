@@ -4,6 +4,7 @@ const PostgresBankAccountRepository = require('./postgres/BankAccountRepository'
 const { compareObjects } = require('../utils/dbComparer');
 const { executeDualWrite } = require('../utils/dualWriteManager');
 const shadowManager = require('../utils/shadowManager');
+const { executeDualRead } = require('../utils/dualReadManager');
 const dbConfig = require('../config/databaseProvider');
 
 class BankAccountRepository {
@@ -23,14 +24,11 @@ class BankAccountRepository {
     }
 
     if (dbConfig.isDualRead()) {
-      const fsResult = await FirestoreBankAccountRepository.findByHashAndBank(accountHash, bankCode);
-      try {
-        const pgResult = await PostgresBankAccountRepository.findByHashAndBank(accountHash, bankCode);
-        compareObjects('BankAccountRepository.findByHashAndBank', fsResult, pgResult);
-      } catch (err) {
-        console.error('BankAccountRepository DUAL_READ Postgres error:', err.message);
-      }
-      return fsResult;
+      return executeDualRead('BankAccountRepository', 'findByHashAndBank',
+        () => FirestoreBankAccountRepository.findByHashAndBank(accountHash, bankCode),
+        () => PostgresBankAccountRepository.findByHashAndBank(accountHash, bankCode),
+        { type: 'account', hash: accountHash }
+      );
     }
 
     return FirestoreBankAccountRepository.findByHashAndBank(accountHash, bankCode);
@@ -64,6 +62,7 @@ class BankAccountRepository {
 }
 
 module.exports = BankAccountRepository;
+
 
 
 

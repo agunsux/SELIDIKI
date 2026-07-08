@@ -4,6 +4,7 @@ const PostgresPhoneRepository = require('./postgres/PhoneRepository');
 const { compareObjects } = require('../utils/dbComparer');
 const { executeDualWrite } = require('../utils/dualWriteManager');
 const shadowManager = require('../utils/shadowManager');
+const { executeDualRead } = require('../utils/dualReadManager');
 const dbConfig = require('../config/databaseProvider');
 
 class PhoneRepository {
@@ -17,9 +18,11 @@ class PhoneRepository {
     if (dbConfig.isFirestore()) return FirestorePhoneRepository.findByHash(phoneHash);
     if (dbConfig.isPostgres()) return PostgresPhoneRepository.findByHash(phoneHash);
     if (dbConfig.isDualRead()) {
-      const fsResult = await FirestorePhoneRepository.findByHash(phoneHash);
-      try { const pgResult = await PostgresPhoneRepository.findByHash(phoneHash); compareObjects('PhoneRepository.findByHash', fsResult, pgResult); } catch (err) { console.error('PhoneRepository DUAL_READ Postgres error:', err.message); }
-      return fsResult;
+      return executeDualRead('PhoneRepository', 'findByHash',
+        () => FirestorePhoneRepository.findByHash(phoneHash),
+        () => PostgresPhoneRepository.findByHash(phoneHash),
+        { type: 'phone', hash: phoneHash }
+      );
     }
     return FirestorePhoneRepository.findByHash(phoneHash);
   }
@@ -38,3 +41,4 @@ class PhoneRepository {
   }
 }
 module.exports = PhoneRepository;
+

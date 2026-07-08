@@ -4,6 +4,7 @@ const PostgresHistoryRepository = require('./postgres/HistoryRepository');
 const { compareObjects } = require('../utils/dbComparer');
 const { executeDualWrite } = require('../utils/dualWriteManager');
 const shadowManager = require('../utils/shadowManager');
+const { executeDualRead } = require('../utils/dualReadManager');
 const dbConfig = require('../config/databaseProvider');
 
 class HistoryRepository {
@@ -49,16 +50,11 @@ class HistoryRepository {
     }
 
     if (dbConfig.isDualRead()) {
-      const fsResult = await FirestoreHistoryRepository.findByUserHash(userHash, limit, offset);
-      try {
-        const pgResult = await PostgresHistoryRepository.findByUserHash(userHash, limit, offset);
-        if (fsResult.data[0] && pgResult.data[0]) {
-          compareObjects('HistoryRepository.findByUserHash[0]', fsResult.data[0], pgResult.data[0]);
-        }
-      } catch (err) {
-        console.error('HistoryRepository DUAL_READ Postgres error:', err.message);
-      }
-      return fsResult;
+      return executeDualRead('HistoryRepository', 'findByUserHash',
+        () => FirestoreHistoryRepository.findByUserHash(userHash, limit, offset),
+        () => PostgresHistoryRepository.findByUserHash(userHash, limit, offset),
+        { type: 'history', hash: userHash }
+      );
     }
 
     return FirestoreHistoryRepository.findByUserHash(userHash, limit, offset);
@@ -66,6 +62,7 @@ class HistoryRepository {
 }
 
 module.exports = HistoryRepository;
+
 
 
 

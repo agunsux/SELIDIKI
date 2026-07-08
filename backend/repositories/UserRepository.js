@@ -4,6 +4,7 @@ const PostgresUserRepository = require('./postgres/UserRepository');
 const { compareObjects } = require('../utils/dbComparer');
 const { executeDualWrite } = require('../utils/dualWriteManager');
 const shadowManager = require('../utils/shadowManager');
+const { executeDualRead } = require('../utils/dualReadManager');
 const dbConfig = require('../config/databaseProvider');
 
 class UserRepository {
@@ -23,14 +24,11 @@ class UserRepository {
     }
 
     if (dbConfig.isDualRead()) {
-      const fsResult = await FirestoreUserRepository.findByFirebaseUid(uid);
-      try {
-        const pgResult = await PostgresUserRepository.findByFirebaseUid(uid);
-        compareObjects('UserRepository.findByFirebaseUid', fsResult, pgResult);
-      } catch (err) {
-        console.error('UserRepository DUAL_READ Postgres error:', err.message);
-      }
-      return fsResult;
+      return executeDualRead('UserRepository', 'findByFirebaseUid',
+        () => FirestoreUserRepository.findByFirebaseUid(uid),
+        () => PostgresUserRepository.findByFirebaseUid(uid),
+        { type: 'user', hash: uid }
+      );
     }
 
     // Default fallback
@@ -53,14 +51,11 @@ class UserRepository {
     }
 
     if (dbConfig.isDualRead()) {
-      const fsResult = await FirestoreUserRepository.findByHash(phoneHash);
-      try {
-        const pgResult = await PostgresUserRepository.findByHash(phoneHash);
-        compareObjects('UserRepository.findByHash', fsResult, pgResult);
-      } catch (err) {
-        console.error('UserRepository DUAL_READ Postgres error:', err.message);
-      }
-      return fsResult;
+      return executeDualRead('UserRepository', 'findByHash',
+        () => FirestoreUserRepository.findByHash(phoneHash),
+        () => PostgresUserRepository.findByHash(phoneHash),
+        { type: 'user', hash: phoneHash }
+      );
     }
 
     // Default fallback
@@ -123,6 +118,7 @@ class UserRepository {
 }
 
 module.exports = UserRepository;
+
 
 
 
