@@ -65,6 +65,39 @@ class HistoryRepository {
       return { data: [], total: 0 };
     }
   }
+
+  static async search(criteria = {}) {
+    const db = getDb();
+    if (!db) return { data: [], total: 0 };
+    try {
+      const { userHash, inputType, riskScoreMin, startDate, endDate, limit = 20, offset = 0 } = criteria;
+      let query = db.collection('scan_history');
+      if (userHash) query = query.where('user_hash', '==', userHash);
+      if (inputType) query = query.where('input_type', '==', inputType);
+      if (riskScoreMin !== undefined) query = query.where('risk_score', '>=', riskScoreMin);
+      query = query.orderBy('created_at', 'desc').limit(limit).offset(offset);
+      const snap = await query.get();
+      const data = snap.docs.map(doc => {
+        const d = doc.data();
+        return {
+          id: doc.id, userHash: d.user_hash, inputType: d.input_type,
+          riskScore: d.risk_score, result: d.result_summary,
+          createdAt: d.created_at?.toDate?.()?.toISOString() || d.created_at,
+        };
+      });
+      return { data, total: data.length };
+    } catch (err) {
+      console.error('Firestore HistoryRepository.search error:', err);
+      return { data: [], total: 0 };
+    }
+  }
+
+  static async ping() {
+    const db = getDb();
+    if (!db) throw new Error('Firestore not initialized');
+    await db.collection('scan_history').limit(1).get();
+  }
+
 }
 
 module.exports = HistoryRepository;

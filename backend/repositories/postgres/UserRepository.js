@@ -99,6 +99,30 @@ class UserRepository {
       throw err;
     }
   }
+
+  static async search(criteria = {}) {
+    try {
+      const { role, isBanned, limit = 20, offset = 0 } = criteria;
+      let query = 'SELECT * FROM users WHERE 1=1';
+      const params = []; let p = 1;
+      if (role) { query += ` AND COALESCE(users.role, 'user') = $${p++}`; params.push(role); }
+      if (isBanned !== undefined) { query += ` AND is_banned = $${p++}`; params.push(isBanned); }
+      query += ` ORDER BY created_at DESC LIMIT $${p++} OFFSET $${p++}`; params.push(limit, offset);
+      const { rows } = await db.query(query, params);
+      const countRes = await db.query('SELECT COUNT(*) as total FROM users', []);
+      const data = rows.map(row => ({
+        id: row.id, phoneHash: row.phone_hash, firebaseUid: row.firebase_uid,
+        role: row.role || 'user', createdAt: row.created_at, lastActive: row.last_active,
+        premiumUntil: row.premium_until, reportCount: row.report_count, scanCount: row.scan_count,
+        isBanned: row.is_banned, banReason: row.ban_reason,
+        metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata) : (row.metadata || {}),
+      }));
+      return { data, total: parseInt(countRes.rows[0].total) || 0 };
+    } catch (err) { console.error('Postgres UserRepository.search error:', err); throw err; }
+  }
+
+  static async ping() { await db.query('SELECT 1 FROM users LIMIT 1'); }
+
 }
 
 module.exports = UserRepository;

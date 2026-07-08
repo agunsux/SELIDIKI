@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const { hashInput, hashPhone, hashAccount } = require('../utils/crypto');
 const { verifyFirebaseToken } = require('../middleware/auth');
-const ReportRepository = require('../repositories/ReportRepository');
+const { reportRepo } = require('../config/repositoryResolver');
 const StorageService = require('../services/storageService');
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -59,7 +59,7 @@ router.post('/', verifyFirebaseToken, async (req, res) => {
     }
     const trackingId = `SLD-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
 
-    const report = await ReportRepository.insert({
+    const report = await reportRepo.insert({
       trackingId,
       targetType: target_type,
       targetHash,
@@ -91,7 +91,7 @@ router.post('/', verifyFirebaseToken, async (req, res) => {
 router.get('/trending', async (req, res) => {
   try {
     const { limit = 10, category } = req.query;
-    const reports = await ReportRepository.findTrending({
+    const reports = await reportRepo.findTrending({
       limit: Math.min(parseInt(limit), 50),
       category,
     });

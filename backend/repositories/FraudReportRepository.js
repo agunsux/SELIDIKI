@@ -43,6 +43,36 @@ class FraudReportRepository {
   static async ping() {
     await db.query('SELECT 1');
   }
+
+  static async findByTrackingId(trackingId) {
+    try {
+      const query = 'SELECT fr.*, COALESCE(u.trusted, false) as trusted FROM fraud_reports fr LEFT JOIN users u ON fr.reporter_hash = u.phone_hash WHERE fr.tracking_id = $1';
+      const { rows } = await db.query(query, [trackingId]);
+      if (rows.length === 0) return null;
+      const row = rows[0];
+      return new FraudReport({ ...row, reporter_user_id: row.reporter_hash || null, fraud_entity_id: row.target_hash, false_positive: row.status === 'rejected', source: 'community' });
+    } catch (err) { console.error('FraudReportRepository.findByTrackingId error:', err); throw err; }
+  }
+
+  static async search(criteria = {}) {
+    try {
+      const { targetHash, targetType, category, status, reporterHash, limit = 20, offset = 0 } = criteria;
+      let query = 'SELECT fr.*, COALESCE(u.trusted, false) as trusted FROM fraud_reports fr LEFT JOIN users u ON fr.reporter_hash = u.phone_hash WHERE 1=1';
+      const params = []; let p = 1;
+      if (targetHash) { query += ` AND fr.target_hash = $${p++}`; params.push(targetHash); }
+      if (targetType) { query += ` AND fr.target_type = $${p++}`; params.push(targetType); }
+      if (category) { query += ` AND fr.category = $${p++}`; params.push(category); }
+      if (status === 'verified') { query += ` AND fr.status = 'verified'`; }
+      else if (status === 'pending') { query += ` AND fr.status = 'pending'`; }
+      if (reporterHash) { query += ` AND fr.reporter_hash = $${p++}`; params.push(reporterHash); }
+      query += ` ORDER BY fr.created_at DESC LIMIT $${p++} OFFSET $${p++}`; params.push(limit, offset);
+      const { rows } = await db.query(query, params);
+      const countRes = await db.query('SELECT COUNT(*) as total FROM fraud_reports', []);
+      const data = rows.map(row => new FraudReport({ ...row, reporter_user_id: row.reporter_hash || null, fraud_entity_id: row.target_hash, false_positive: row.status === 'rejected', source: 'community' }));
+      return { data, total: parseInt(countRes.rows[0].total) || 0 };
+    } catch (err) { console.error('FraudReportRepository.search error:', err); throw err; }
+  }
+
 }
 
 module.exports = FraudReportRepository;

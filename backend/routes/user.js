@@ -3,8 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const { verifyFirebaseToken } = require('../middleware/auth');
 const { hashPhone } = require('../utils/crypto');
-const HistoryRepository = require('../repositories/HistoryRepository');
-const UserRepository = require('../repositories/postgres/UserRepository');
+const { historyRepo, userRepo } = require('../config/repositoryResolver');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'selidiki_secret_key_change_in_production';
 
@@ -28,7 +27,7 @@ router.post('/auth/send-otp', async (req, res) => {
     }
 
     // Generate standard 6-digit OTP code
-    const otp = process.env.NODE_ENV === 'development' || cleanPhone === '81234567890'
+    const otp = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' || cleanPhone === '81234567890'
       ? '123456'
       : Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -39,7 +38,7 @@ router.post('/auth/send-otp', async (req, res) => {
     console.log(`[AUTH] Sent OTP ${otp} to +62${cleanPhone}`);
 
     res.apiSuccess(
-      { otp: process.env.NODE_ENV === 'development' ? otp : undefined },
+      { otp: (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') ? otp : undefined },
       'Kode OTP berhasil dikirim.'
     );
   } catch (err) {
@@ -82,9 +81,9 @@ router.post('/auth/verify-otp', async (req, res) => {
     const normalizedPhone = cleanPhone.startsWith('62') ? cleanPhone : '62' + cleanPhone;
     const phoneHash = hashPhone(normalizedPhone);
 
-    let user = await UserRepository.findByHash(phoneHash);
+    let user = await userRepo.findByHash(phoneHash);
     if (!user) {
-      user = await UserRepository.insert({
+      user = await userRepo.insert({
         phoneHash,
         firebaseUid: null,
         metadata: { source: 'otp_auth' },
@@ -133,10 +132,7 @@ router.delete('/data', verifyFirebaseToken, async (req, res) => {
       return res.apiError('user_hash wajib diisi', 'Input tidak valid', 400);
     }
 
-    const provider = process.env.DATABASE_PROVIDER || 'FIRESTORE';
-    if (provider === 'POSTGRES' || provider === 'DUAL_WRITE') {
-      await UserRepository.deleteByHash(user_hash);
-    }
+    await userRepo.deleteByHash(user_hash);
 
     res.apiSuccess(
       { deleted_at: new Date().toISOString() },
@@ -160,7 +156,7 @@ router.get('/history', verifyFirebaseToken, async (req, res) => {
       return res.apiError('user_hash wajib diisi', 'Input tidak valid', 400);
     }
 
-    const { data, total } = await HistoryRepository.findByUserHash(user_hash, parseInt(limit), parseInt(offset));
+    const { data, total } = await historyRepo.findByUserHash(user_hash, parseInt(limit), parseInt(offset));
     
     res.apiSuccess(
       data,
@@ -178,3 +174,4 @@ router.get('/history', verifyFirebaseToken, async (req, res) => {
 });
 
 module.exports = router;
+

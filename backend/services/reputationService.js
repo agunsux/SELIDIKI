@@ -3,11 +3,10 @@
 const { v4: uuidv4 } = require('uuid');
 const EntityResolver = require('./entityResolver');
 const CacheProvider = require('../utils/cacheProvider');
-const FraudEntityRepository = require('../repositories/FraudEntityRepository');
-const FraudReportRepository = require('../repositories/FraudReportRepository');
+const { fraudEntityRepo, fraudReportRepo, lookupLogRepo } = require('../config/repositoryResolver');
 const RiskEngine = require('./riskEngine');
 const ResponseBuilder = require('../builders/ResponseBuilder');
-const LookupLogRepository = require('../repositories/lookupLogRepository');
+
 const config = require('../config/reputationConfig');
 const logger = require('../utils/logger');
 
@@ -55,9 +54,9 @@ class ReputationService {
       cacheHit = true;
     } else {
       // Repository fetches
-      entityRecord = await FraudEntityRepository.findByHash(hash);
+      entityRecord = await fraudEntityRepo.findByHash(hash);
       if (entityRecord) {
-        reports = await FraudReportRepository.findByEntityId(entityRecord.id);
+        reports = await fraudReportRepo.findByEntityId(entityRecord.id);
         // Store in cache for future lookups
         await CacheProvider.set(cacheKey, { entityRecord, reports }, config.CACHE_TTL_SECONDS);
       } else {
@@ -83,7 +82,7 @@ class ReputationService {
     });
 
     // Log lookup (asynchronous, fire‑and‑forget)
-    LookupLogRepository.insert({
+    lookupLogRepo.insert({
       queryId,
       entityType,
       hash,
@@ -97,7 +96,7 @@ class ReputationService {
   // Helper to expose DB health (simple ping)
   static async checkDatabaseConnection() {
     try {
-      await FraudEntityRepository.ping();
+      await fraudEntityRepo.ping();
       return true;
     } catch (_) {
       return false;
@@ -115,3 +114,4 @@ class ReputationService {
 }
 
 module.exports = ReputationService;
+

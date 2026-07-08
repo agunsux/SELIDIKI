@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { analyzeWithGemini } = require('../services/aiEngine');
 const { hashInput } = require('../utils/crypto');
-const HistoryRepository = require('../repositories/HistoryRepository');
+const { historyRepo } = require('../config/repositoryResolver');
 
 /**
  * POST /api/v1/scan/message
@@ -27,7 +27,7 @@ router.post('/message', async (req, res) => {
 
     // Save to history (anonymous)
     if (user_hash) {
-      await HistoryRepository.insert({
+      await historyRepo.insert({
         userHash: user_hash,
         inputType: 'message',
         riskScore: result.risk_score,
@@ -69,7 +69,7 @@ router.post('/url', async (req, res) => {
     });
 
     if (user_hash) {
-      await HistoryRepository.insert({
+      await historyRepo.insert({
         userHash: user_hash,
         inputType: 'url',
         riskScore: result.risk_score,
@@ -114,7 +114,7 @@ router.post('/screenshot', async (req, res) => {
     });
 
     if (user_hash) {
-      await HistoryRepository.insert({
+      await historyRepo.insert({
         userHash: user_hash,
         inputType: 'screenshot',
         riskScore: result.risk_score,
@@ -130,3 +130,4 @@ router.post('/screenshot', async (req, res) => {
 });
 
 module.exports = router;
+

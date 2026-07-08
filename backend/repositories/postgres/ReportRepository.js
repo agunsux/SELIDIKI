@@ -111,6 +111,49 @@ class ReportRepository {
       return [];
     }
   }
+
+  static async findByTrackingId(trackingId) {
+    try {
+      const query = 'SELECT * FROM fraud_reports WHERE tracking_id = $1';
+      const { rows } = await db.query(query, [trackingId]);
+      if (rows.length === 0) return null;
+      const row = rows[0];
+      return {
+        id: row.id, trackingId: row.tracking_id, targetType: row.target_type,
+        targetHash: row.target_hash, category: row.category, description: row.description,
+        evidenceUrl: row.evidence_url, reporterHash: row.reporter_hash,
+        confidence: row.confidence, createdAt: row.created_at?.toISOString?.() || row.created_at,
+        verified: row.status === 'verified',
+      };
+    } catch (err) { console.error('Postgres ReportRepository.findByTrackingId error:', err); throw err; }
+  }
+
+  static async search(criteria = {}) {
+    try {
+      const { targetHash, targetType, category, status, limit = 20, offset = 0 } = criteria;
+      let query = 'SELECT * FROM fraud_reports WHERE 1=1';
+      const params = []; let p = 1;
+      if (targetHash) { query += ` AND target_hash = $${p++}`; params.push(targetHash); }
+      if (targetType) { query += ` AND target_type = $${p++}`; params.push(targetType); }
+      if (category) { query += ` AND category = $${p++}`; params.push(category); }
+      if (status === 'verified') { query += ` AND status = 'verified'`; }
+      else if (status === 'pending') { query += ` AND status = 'pending'`; }
+      query += ` ORDER BY created_at DESC LIMIT $${p++} OFFSET $${p++}`; params.push(limit, offset);
+      const { rows } = await db.query(query, params);
+      const countRes = await db.query('SELECT COUNT(*) as total FROM fraud_reports', []);
+      const data = rows.map(row => ({
+        id: row.id, trackingId: row.tracking_id, targetType: row.target_type,
+        targetHash: row.target_hash, category: row.category, description: row.description,
+        evidenceUrl: row.evidence_url, reporterHash: row.reporter_hash,
+        confidence: row.confidence, createdAt: row.created_at?.toISOString?.() || row.created_at,
+        verified: row.status === 'verified',
+      }));
+      return { data, total: parseInt(countRes.rows[0].total) || 0 };
+    } catch (err) { console.error('Postgres ReportRepository.search error:', err); throw err; }
+  }
+
+  static async ping() { await db.query('SELECT 1 FROM fraud_reports LIMIT 1'); }
+
 }
 
 module.exports = ReportRepository;

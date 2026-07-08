@@ -6,6 +6,17 @@ const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 const { initializeApp, cert } = require('firebase-admin/app');
 
+// ── Feature Flag Validation (MUST pass before server starts) ──
+try {
+  const { validateFlags, startupSnapshot } = require('./config/featureFlags');
+  validateFlags();
+  startupSnapshot();
+} catch (err) {
+  console.error('FATAL: Feature flag validation failed. Server cannot start.');
+  console.error(err.message);
+  process.exit(1);
+}
+
 // ── Routes ────────────────────────────────────────────────
 const scanRoutes = require('./routes/scan');
 const checkRoutes = require('./routes/check');
@@ -98,9 +109,11 @@ app.use((err, req, res, next) => {
 });
 
 // ── Start ─────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`🛡️  SELIDIKI API running on port ${PORT}`);
-  console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`🛡️  SELIDIKI API running on port ${PORT}`);
+    console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+  });
+}
 
 module.exports = app;

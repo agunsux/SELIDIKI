@@ -1,0 +1,373 @@
+{
+  "health": {
+    "endpoint": "/health",
+    "method": "GET",
+    "requestPayload": null,
+    "httpStatus": 200,
+    "responseBody": {
+      "status": "ok",
+      "service": "SELIDIKI API",
+      "version": "1.0.0",
+      "timestamp": "2026-07-05T07:02:36.042Z"
+    },
+    "latencyMs": 18,
+    "capturedAt": "2026-07-05T07:02:36.048Z"
+  },
+  "send-otp": {
+    "endpoint": "/api/v1/user/auth/send-otp",
+    "method": "POST",
+    "requestPayload": {
+      "phone": "081234567890"
+    },
+    "httpStatus": 200,
+    "responseBody": {
+      "success": true,
+      "message": "Kode OTP berhasil dikirim.",
+      "data": {
+        "otp": "123456"
+      },
+      "meta": {
+        "apiVersion": "1.0.0"
+      },
+      "errors": null,
+      "requestId": "4357fc65-7b60-4adf-b564-9be5c09a5e26",
+      "timestamp": "2026-07-05T07:02:36.061Z"
+    },
+    "latencyMs": 14,
+    "capturedAt": "2026-07-05T07:02:36.062Z"
+  },
+  "verify-otp": {
+    "endpoint": "/api/v1/user/auth/verify-otp",
+    "method": "POST",
+    "requestPayload": {
+      "phone": "081234567890",
+      "otp": "123456"
+    },
+    "httpStatus": 200,
+    "responseBody": {
+      "success": true,
+      "message": "Verifikasi berhasil",
+      "data": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiIxMjMiLCJwaG9uZUhhc2giOiJ0ZXN0cGhvbmVoYXNoIiwicm9sZSI6InVzZXIiLCJpYXQiOjE3ODMyMzQ5NTYsImV4cCI6MTc4NTgyNjk1Nn0._WWf2VMl8EjsA0TkhOKC4v2Jo6f6DQT04IlZ1bNUnfo",
+        "user_hash": "3e557a3fa4e3f4aa52ead59aeabc1f3eb0e1fc8ca3080ccb9d9ba5deef06f720",
+        "role": "user",
+        "user": {
+          "id": "123",
+          "phone_hash": "testphonehash",
+          "role": "user"
+        }
+      },
+      "meta": {
+        "apiVersion": "1.0.0"
+      },
+      "errors": null,
+      "requestId": "05555ad6-7cd2-4d5e-98a1-80cc6c01d65a",
+      "timestamp": "2026-07-05T07:02:36.066Z"
+    },
+    "latencyMs": 4,
+    "capturedAt": "2026-07-05T07:02:36.067Z"
+  },
+  "check-phone": {
+    "endpoint": "/api/v1/check/phone/081234567890",
+    "method": "GET",
+    "requestPayload": null,
+    "httpStatus": 200,
+    "responseBody": {
+      "success": true,
+      "message": "Pengecekan nomor HP berhasil",
+      "data": {
+        "phone_masked": "+62 0812-xxxx-7890",
+        "phone_hash": "2e5d59bc74d0ff3583b0d15e07d70338362fdcf82adf8e67eb3bdbb0ed9a7bb5",
+        "risk_score": 0,
+        "status": "SAFE",
+        "reports_count": 0,
+        "category": null,
+        "signals": [],
+        "last_activity": null,
+        "first_reported": null
+      },
+      "meta": {
+        "apiVersion": "1.0.0"
+      },
+      "errors": null,
+      "requestId": "4ae1141e-c40d-4b58-b561-3c6eab7f45f7",
+      "timestamp": "2026-07-05T07:02:36.070Z"
+    },
+    "latencyMs": 4,
+    "capturedAt": "2026-07-05T07:02:36.071Z"
+  },
+  "check-account": {
+    "endpoint": "/api/v1/check/account?bank=BCA&account=1234567890",
+    "method": "GET",
+    "requestPayload": null,
+    "httpStatus": 200,
+    "responseBody": {
+      "success": true,
+      "message": "Pengecekan rekening berhasil",
+      "data": {
+        "account_masked": "******7890",
+        "bank": "BCA",
+        "account_hash": "00feb8279321055acbc6c5f1e46ddcf13d0c1e173840dce3c08458ec78804f51",
+        "risk_score": 0,
+        "status": "SAFE",
+        "reports_count": 0,
+        "categories": []
+      },
+      "meta": {
+        "apiVersion": "1.0.0"
+      },
+      "errors": null,
+      "requestId": "6ede1162-0ed8-4bd0-b5db-880f325da891",
+      "timestamp": "2026-07-05T07:02:36.075Z"
+    },
+    "latencyMs": 6,
+    "capturedAt": "2026-07-05T07:02:36.077Z"
+  },
+  "report-trending": {
+    "endpoint": "/api/v1/report/trending",
+    "method": "GET",
+    "requestPayload": null,
+    "httpStatus": 200,
+    "responseBody": {
+      "success": true,
+      "message": "Trending laporan berhasil diambil",
+      "data": [],
+      "meta": {
+        "apiVersion": "1.0.0"
+      },
+      "errors": null,
+      "requestId": "7f5dcc76-cbce-46a4-918b-06b45df1f2f9",
+      "timestamp": "2026-07-05T07:02:36.080Z"
+    },
+    "latencyMs": 4,
+    "capturedAt": "2026-07-05T07:02:36.081Z"
+  },
+  "scan-message": {
+    "endpoint": "/api/v1/scan/message",
+    "method": "POST",
+    "requestPayload": {
+      "message": "Halo ini penipuan",
+      "user_hash": "testphonehash"
+    },
+    "httpStatus": 200,
+    "responseBody": {
+      "success": true,
+      "message": "Analisis pesan berhasil",
+      "data": {
+        "risk_score": 15,
+        "status": "SAFE",
+        "category": null,
+        "explanation": "Analisis AI baseline: Pesan aman.",
+        "evidence": [],
+        "confidence": 85
+      },
+      "meta": {
+        "apiVersion": "1.0.0"
+      },
+      "errors": null,
+      "requestId": "f84b7949-c85e-492a-ba00-be6ed90f0416",
+      "timestamp": "2026-07-05T07:02:36.085Z"
+    },
+    "latencyMs": 4,
+    "capturedAt": "2026-07-05T07:02:36.086Z"
+  },
+  "scan-url": {
+    "endpoint": "/api/v1/scan/url",
+    "method": "POST",
+    "requestPayload": {
+      "url": "http://phishing-scam-site.com",
+      "user_hash": "testphonehash"
+    },
+    "httpStatus": 200,
+    "responseBody": {
+      "success": true,
+      "message": "Analisis URL berhasil",
+      "data": {
+        "risk_score": 15,
+        "status": "SAFE",
+        "category": null,
+        "explanation": "Analisis AI baseline: Pesan aman.",
+        "evidence": [],
+        "confidence": 85,
+        "domain": "phishing-scam-site.com"
+      },
+      "meta": {
+        "domain": "phishing-scam-site.com",
+        "apiVersion": "1.0.0"
+      },
+      "errors": null,
+      "requestId": "65b9ebe7-d82c-47c1-82a7-c436d92a4c2b",
+      "timestamp": "2026-07-05T07:02:36.088Z"
+    },
+    "latencyMs": 3,
+    "capturedAt": "2026-07-05T07:02:36.089Z"
+  },
+  "scan-screenshot": {
+    "endpoint": "/api/v1/scan/screenshot",
+    "method": "POST",
+    "requestPayload": {
+      "image_base64": "dGVzdA==",
+      "user_hash": "testphonehash"
+    },
+    "httpStatus": 200,
+    "responseBody": {
+      "success": true,
+      "message": "Analisis screenshot berhasil",
+      "data": {
+        "risk_score": 15,
+        "status": "SAFE",
+        "category": null,
+        "explanation": "Analisis AI baseline: Pesan aman.",
+        "evidence": [],
+        "confidence": 85
+      },
+      "meta": {
+        "apiVersion": "1.0.0"
+      },
+      "errors": null,
+      "requestId": "2d91941e-17fb-47c8-934e-fd69511318a6",
+      "timestamp": "2026-07-05T07:02:36.092Z"
+    },
+    "latencyMs": 4,
+    "capturedAt": "2026-07-05T07:02:36.093Z"
+  },
+  "reputation-health": {
+    "endpoint": "/api/v1/reputation/health",
+    "method": "GET",
+    "requestPayload": null,
+    "httpStatus": 200,
+    "responseBody": {
+      "success": true,
+      "message": "Layanan reputasi sehat",
+      "data": {
+        "status": "ok",
+        "database": "connected",
+        "cache": "connected",
+        "engineVersion": "1.0.0"
+      },
+      "meta": {
+        "apiVersion": "1.0.0"
+      },
+      "errors": null,
+      "requestId": "e379977f-1b57-48d1-a560-b7e5c6153268",
+      "timestamp": "2026-07-05T07:02:36.096Z"
+    },
+    "latencyMs": 4,
+    "capturedAt": "2026-07-05T07:02:36.097Z"
+  },
+  "reputation-check": {
+    "endpoint": "/api/v1/reputation/check",
+    "method": "POST",
+    "requestPayload": {
+      "entityType": "PHONE",
+      "value": "081234567890"
+    },
+    "httpStatus": 200,
+    "responseBody": {
+      "success": true,
+      "message": "Pengecekan reputasi berhasil",
+      "data": {
+        "entityType": "PHONE",
+        "normalized": "+6281234567890",
+        "hash": "6f6a3a00e7b06608b54636d4a324df7b40f4899d044c8b2a533717fec01d8b1e",
+        "riskScore": 0,
+        "confidence": 1,
+        "label": "AMAN",
+        "explanation": [
+          "1 reports"
+        ],
+        "explanationCodes": [
+          {
+            "code": "REPORT_COUNT",
+            "weight": 0.2
+          }
+        ],
+        "reportsCount": 1
+      },
+      "meta": {
+        "queryId": "30916f36-9728-44f2-99e0-9700d861e2f6",
+        "generatedAt": "2026-07-05T07:02:36.101Z",
+        "engineVersion": "1.0.0",
+        "cacheHit": false,
+        "apiVersion": "1.0.0"
+      },
+      "errors": null,
+      "requestId": "e7424a27-6788-494d-9ccd-5ca069654845",
+      "timestamp": "2026-07-05T07:02:36.101Z"
+    },
+    "latencyMs": 5,
+    "capturedAt": "2026-07-05T07:02:36.102Z"
+  },
+  "user-history": {
+    "endpoint": "/api/v1/user/history?user_hash=testphonehash",
+    "method": "GET",
+    "requestPayload": null,
+    "httpStatus": 200,
+    "responseBody": {
+      "success": true,
+      "message": "Riwayat berhasil diambil",
+      "data": [],
+      "meta": {
+        "total": 0,
+        "limit": 20,
+        "offset": 0,
+        "apiVersion": "1.0.0"
+      },
+      "errors": null,
+      "requestId": "1be20054-f549-4cd9-a758-6a9402024e1e",
+      "timestamp": "2026-07-05T07:02:36.105Z"
+    },
+    "latencyMs": 4,
+    "capturedAt": "2026-07-05T07:02:36.106Z"
+  },
+  "user-delete-data": {
+    "endpoint": "/api/v1/user/data",
+    "method": "DELETE",
+    "requestPayload": {
+      "user_hash": "testphonehash"
+    },
+    "httpStatus": 200,
+    "responseBody": {
+      "success": true,
+      "message": "Semua data kamu telah dihapus dari sistem kami.",
+      "data": {
+        "deleted_at": "2026-07-05T07:02:36.109Z"
+      },
+      "meta": {
+        "apiVersion": "1.0.0"
+      },
+      "errors": null,
+      "requestId": "8e67e027-8f8c-4b6d-b5f4-2ab0289de6a0",
+      "timestamp": "2026-07-05T07:02:36.109Z"
+    },
+    "latencyMs": 4,
+    "capturedAt": "2026-07-05T07:02:36.110Z"
+  },
+  "submit-report": {
+    "endpoint": "/api/v1/report",
+    "method": "POST",
+    "requestPayload": {
+      "target_type": "phone",
+      "target": "081234567890",
+      "category": "marketplace_scam",
+      "description": "Test scam report"
+    },
+    "httpStatus": 200,
+    "responseBody": {
+      "success": true,
+      "message": "Laporan berhasil dikirim. Terima kasih telah melindungi komunitas!",
+      "data": {
+        "tracking_id": "SLD-1783234956113-WDZ5G",
+        "submitted_at": "2026-07-05T07:02:36.113Z"
+      },
+      "meta": {
+        "apiVersion": "1.0.0"
+      },
+      "errors": null,
+      "requestId": "3a82066a-763d-4eba-bbb2-e1f615a1389d",
+      "timestamp": "2026-07-05T07:02:36.113Z"
+    },
+    "latencyMs": 4,
+    "capturedAt": "2026-07-05T07:02:36.114Z"
+  }
+}

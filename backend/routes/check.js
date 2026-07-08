@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { hashPhone, hashAccount } = require('../utils/crypto');
-const PhoneRepository = require('../repositories/PhoneRepository');
-const BankAccountRepository = require('../repositories/BankAccountRepository');
+const { phoneRepo, bankAccountRepo } = require('../config/repositoryResolver');
 
 /**
  * GET /api/v1/check/phone/:number
@@ -25,7 +24,7 @@ router.get('/phone/:number', async (req, res) => {
       : '62' + cleaned;
 
     const phoneHash = hashPhone(normalized);
-    const profile = (await PhoneRepository.findByHash(phoneHash)) || {
+    const profile = (await phoneRepo.findByHash(phoneHash)) || {
       riskScore: 0,
       reportsCount: 0,
       category: null,
@@ -73,7 +72,7 @@ router.get('/account', async (req, res) => {
     }
 
     const accountHash = hashAccount(cleanAccount, bank.toUpperCase());
-    const profile = (await BankAccountRepository.findByHashAndBank(accountHash, bank.toUpperCase())) || {
+    const profile = (await bankAccountRepo.findByHashAndBank(accountHash, bank.toUpperCase())) || {
       riskScore: 0,
       reportsCount: 0,
       categories: [],

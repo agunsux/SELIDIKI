@@ -53,6 +53,30 @@ class HistoryRepository {
       return { data: [], total: 0 };
     }
   }
+
+  static async search(criteria = {}) {
+    try {
+      const { userHash, inputType, riskScoreMin, limit = 20, offset = 0 } = criteria;
+      let query = 'SELECT * FROM scan_history WHERE 1=1';
+      const params = []; let p = 1;
+      if (userHash) { query += ` AND user_hash = $${p++}`; params.push(userHash); }
+      if (inputType) { query += ` AND input_type = $${p++}`; params.push(inputType); }
+      if (riskScoreMin !== undefined) { query += ` AND risk_score >= $${p++}`; params.push(riskScoreMin); }
+      query += ` ORDER BY created_at DESC LIMIT $${p++} OFFSET $${p++}`; params.push(limit, offset);
+      const { rows } = await db.query(query, params);
+      const countRes = await db.query('SELECT COUNT(*) as total FROM scan_history', []);
+      const data = rows.map(row => ({
+        id: row.id, userHash: row.user_hash, inputType: row.input_type,
+        riskScore: row.risk_score,
+        result: typeof row.result_json === 'string' ? JSON.parse(row.result_json) : (row.result_json || {}),
+        createdAt: row.created_at?.toISOString?.() || row.created_at,
+      }));
+      return { data, total: parseInt(countRes.rows[0].total) || 0 };
+    } catch (err) { console.error('Postgres HistoryRepository.search error:', err); throw err; }
+  }
+
+  static async ping() { await db.query('SELECT 1 FROM scan_history LIMIT 1'); }
+
 }
 
 module.exports = HistoryRepository;

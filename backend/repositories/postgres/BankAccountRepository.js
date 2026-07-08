@@ -51,6 +51,29 @@ class BankAccountRepository {
       throw err;
     }
   }
+
+  static async search(criteria = {}) {
+    try {
+      const { bankCode, riskScoreMin, limit = 20, offset = 0 } = criteria;
+      let query = 'SELECT * FROM bank_account_profiles WHERE 1=1';
+      const params = []; let p = 1;
+      if (bankCode) { query += ` AND bank_code = $${p++}`; params.push(bankCode.toUpperCase()); }
+      if (riskScoreMin !== undefined) { query += ` AND risk_score >= $${p++}`; params.push(riskScoreMin); }
+      query += ` ORDER BY risk_score DESC LIMIT $${p++} OFFSET $${p++}`; params.push(limit, offset);
+      const { rows } = await db.query(query, params);
+      const countRes = await db.query('SELECT COUNT(*) as total FROM bank_account_profiles', []);
+      const data = rows.map(row => ({
+        id: row.id, accountHash: row.account_hash, bankCode: row.bank_code,
+        riskScore: row.risk_score, reportsCount: row.reports_count,
+        categories: row.categories || [], lastActivity: row.last_activity,
+        firstReported: row.first_reported, isBlocked: row.is_blocked,
+      }));
+      return { data, total: parseInt(countRes.rows[0].total) || 0 };
+    } catch (err) { console.error('Postgres BankAccountRepository.search error:', err); throw err; }
+  }
+
+  static async ping() { await db.query('SELECT 1 FROM bank_account_profiles LIMIT 1'); }
+
 }
 
 module.exports = BankAccountRepository;

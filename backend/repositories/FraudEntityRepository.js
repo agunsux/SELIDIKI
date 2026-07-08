@@ -53,6 +53,33 @@ class FraudEntityRepository {
   static async ping() {
     await db.query('SELECT 1');
   }
+
+  static async findById(id) {
+    try {
+      const query = 'SELECT id, phone_hash AS value_hash, risk_score, updated_at FROM phone_profiles WHERE id::text = $1';
+      const { rows } = await db.query(query, [id]);
+      if (rows.length > 0) {
+        const row = rows[0];
+        return new FraudEntity({ id: row.id, entity_type: 'phone', normalized_value: '', value_hash: row.value_hash, risk_score: row.risk_score, created_at: row.updated_at, updated_at: row.updated_at });
+      }
+      return null;
+    } catch (err) { console.error('FraudEntityRepository.findById error:', err); throw err; }
+  }
+
+  static async search(criteria = {}) {
+    try {
+      const { riskScoreMin, limit = 20, offset = 0 } = criteria;
+      let query = 'SELECT id, phone_hash AS value_hash, risk_score, updated_at FROM phone_profiles WHERE 1=1';
+      const params = []; let p = 1;
+      if (riskScoreMin !== undefined) { query += ` AND risk_score >= $${p++}`; params.push(riskScoreMin); }
+      query += ` ORDER BY risk_score DESC LIMIT $${p++} OFFSET $${p++}`; params.push(limit, offset);
+      const { rows } = await db.query(query, params);
+      const countRes = await db.query('SELECT COUNT(*) as total FROM phone_profiles', []);
+      const data = rows.map(row => new FraudEntity({ id: row.id, entity_type: 'phone', normalized_value: '', value_hash: row.value_hash, risk_score: row.risk_score, created_at: row.updated_at, updated_at: row.updated_at }));
+      return { data, total: parseInt(countRes.rows[0].total) || 0 };
+    } catch (err) { console.error('FraudEntityRepository.search error:', err); throw err; }
+  }
+
 }
 
 module.exports = FraudEntityRepository;

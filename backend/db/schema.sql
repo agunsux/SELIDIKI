@@ -1,7 +1,7 @@
 -- ══════════════════════════════════════════════════════════════════
 -- SELIDIKI PostgreSQL Schema
 -- Indonesia Digital Trust & Fraud Intelligence Platform
--- Version: 1.0.0
+-- Version: 1.1.0 (Sprint 2A — Schema Alignment)
 -- ══════════════════════════════════════════════════════════════════
 
 -- Enable UUID extension
@@ -15,6 +15,8 @@ CREATE TABLE users (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     phone_hash      VARCHAR(64)  UNIQUE NOT NULL,
     firebase_uid    VARCHAR(128) UNIQUE,
+    role            VARCHAR(20)  NOT NULL DEFAULT 'user',    -- ✅ ADDED: Sprint 2A alignment
+    trusted         BOOLEAN      NOT NULL DEFAULT FALSE,     -- ✅ ADDED: migration 001
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     last_active     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     premium_until   TIMESTAMPTZ,
@@ -28,9 +30,12 @@ CREATE TABLE users (
 CREATE INDEX idx_users_phone_hash ON users(phone_hash);
 CREATE INDEX idx_users_firebase_uid ON users(firebase_uid);
 CREATE INDEX idx_users_premium_until ON users(premium_until) WHERE premium_until IS NOT NULL;
+CREATE INDEX idx_users_role ON users(role);                  -- ✅ ADDED: Sprint 2A index
 
 COMMENT ON TABLE users IS 'User accounts. Phone stored as SHA-256 hash for privacy.';
 COMMENT ON COLUMN users.phone_hash IS 'SHA-256(SALT + normalized_phone_number)';
+COMMENT ON COLUMN users.role IS 'User role: user, moderator, admin';
+
 
 -- ── 2. PHONE PROFILES ────────────────────────────────────────────
 -- Fraud reputation for phone numbers

@@ -1,6 +1,6 @@
 const { getAuth } = require('firebase-admin/auth');
 const jwt = require('jsonwebtoken');
-const UserRepository = require('../repositories/postgres/UserRepository');
+const { userRepo } = require('../config/repositoryResolver');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'selidiki_secret_key_change_in_production';
 const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET || '';
@@ -58,13 +58,13 @@ async function decodeAndVerifyToken(authHeader) {
 async function verifyFirebaseToken(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Token autentikasi diperlukan' });
+    return res.apiError('Token autentikasi diperlukan', 'Autentikasi gagal', 401);
   }
 
   try {
     const decoded = await decodeAndVerifyToken(authHeader);
     if (!decoded) {
-      return res.status(401).json({ error: 'Token tidak valid' });
+      return res.apiError('Token tidak valid', 'Autentikasi gagal', 401);
     }
 
     req.user = decoded;
@@ -72,8 +72,8 @@ async function verifyFirebaseToken(req, res, next) {
     // Attach role from database if user exists
     try {
       const dbUser = req.user.phoneHash
-        ? await UserRepository.findByHash(req.user.phoneHash)
-        : (req.user.uid ? await UserRepository.findByFirebaseUid(req.user.uid) : null);
+        ? await userRepo.findByHash(req.user.phoneHash)
+        : (req.user.uid ? await userRepo.findByFirebaseUid(req.user.uid) : null);
       
       if (dbUser) {
         req.user.role = dbUser.role || dbUser.metadata?.role || 'user';
@@ -88,7 +88,7 @@ async function verifyFirebaseToken(req, res, next) {
     next();
   } catch (err) {
     console.error('Auth middleware verification error:', err);
-    return res.status(401).json({ error: 'Proses autentikasi gagal' });
+    return res.apiError('Proses autentikasi gagal', 'Autentikasi gagal', 401);
   }
 }
 
@@ -108,8 +108,8 @@ async function optionalAuth(req, res, next) {
       req.user = decoded;
       try {
         const dbUser = req.user.phoneHash
-          ? await UserRepository.findByHash(req.user.phoneHash)
-          : (req.user.uid ? await UserRepository.findByFirebaseUid(req.user.uid) : null);
+          ? await userRepo.findByHash(req.user.phoneHash)
+          : (req.user.uid ? await userRepo.findByFirebaseUid(req.user.uid) : null);
         
         if (dbUser) {
           req.user.role = dbUser.role || dbUser.metadata?.role || 'user';
@@ -135,14 +135,15 @@ async function optionalAuth(req, res, next) {
 function requireRole(allowedRoles) {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({ error: 'Autentikasi diperlukan' });
+      return res.apiError('Autentikasi diperlukan', 'Autentikasi gagal', 401);
     }
     const role = req.user.role || 'user';
     if (!allowedRoles.includes(role)) {
-      return res.status(403).json({ error: 'Hak akses tidak cukup' });
+      return res.apiError('Hak akses tidak cukup', 'Akses ditolak', 403);
     }
     next();
   };
 }
 
 module.exports = { verifyFirebaseToken, optionalAuth, requireRole };
+
