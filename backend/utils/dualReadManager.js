@@ -55,7 +55,7 @@ function detectDrift(fsResult, pgResult) {
 async function executeDualRead(repository, operation, fsRead, pgRead, entity = {}) {
   if (!flags.DUAL_READ) return fsRead();
 
-  const startTime = Date.now();
+  const fsReadStart = Date.now();
   trackRepo(repository);
   metrics.totalComparisons++;
   metrics.perRepo[repository].comparisons++;
@@ -65,15 +65,19 @@ async function executeDualRead(repository, operation, fsRead, pgRead, entity = {
   try {
     fsResult = await fsRead();
   } catch (err) {
-    // FS failure → propagate to caller (not a dual-read concern)
     throw err;
   }
+  const fsReadTs = Date.now();
 
   // Phase 2: PostgreSQL read (secondary — comparison only)
   try {
+    const pgReadStart = Date.now();
     const pgResult = await pgRead();
+    const pgReadTs = Date.now();
+
+    const comparisonWindowMs = pgReadTs - fsReadStart;
     const drifts = detectDrift(fsResult, pgResult);
-    const latency = Date.now() - startTime;
+    const latency = pgReadTs - fsReadStart;
     metrics.totalLatencyMs += latency;
 
     if (drifts.length > 0) {
@@ -85,19 +89,27 @@ async function executeDualRead(repository, operation, fsRead, pgRead, entity = {
         else if (d.severity === 'MEDIUM') { metrics.driftMedium++; metrics.perRepo[repository].medium++; }
         else { metrics.driftLow++; metrics.perRepo[repository].low++; }
       });
-      logParity(repository, operation, entity, 'DRIFT', latency, { drifts });
+      logParity(repository, operation, entity, 'DRIFT', latency, {
+        drifts,
+        firestore_read_ts: new Date(fsReadTs).toISOString(),
+        postgres_read_ts: new Date(pgReadTs).toISOString(),
+        comparison_window_ms: comparisonWindowMs,
+      });
     } else {
       metrics.totalMatches++;
       metrics.perRepo[repository].matches++;
-      logParity(repository, operation, entity, 'MATCH', latency);
+      logParity(repository, operation, entity, 'MATCH', latency, {
+        firestore_read_ts: new Date(fsReadTs).toISOString(),
+        postgres_read_ts: new Date(pgReadTs).toISOString(),
+        comparison_window_ms: comparisonWindowMs,
+      });
     }
   } catch (pgErr) {
     metrics.pgFailures++;
     metrics.perRepo[repository].failures++;
-    logParity(repository, operation, entity, 'PG_FAILED', Date.now() - startTime, { error: pgErr.message });
+    logParity(repository, operation, entity, 'PG_FAILED', Date.now() - fsReadStart, { error: pgErr.message });
   }
 
-  // Always return Firestore result
   return fsResult;
 }
 
@@ -113,12 +125,14 @@ function logParity(repo, op, entity, result, latencyMs, extra = {}) {
 module.exports = {
   executeDualRead,
   detectDrift,
-  getMetrics() {
+  // SLO-gated match rates
+  getSLO() {
     const n = metrics.totalComparisons || 1;
     return {
-      ...metrics,
-      matchRate: Math.round(metrics.totalMatches / n * 10000) / 100,
-      driftRate: Math.round(metrics.totalDrifts / n * 10000) / 100,
+      overall_match_pct:     Math.round(metrics.totalMatches / n * 10000) / 100,
+      critical_match_pct:    metrics.driftCritical === 0 ? 100 : Math.round((1 - metrics.driftCritical / n) * 10000) / 100,
+      high_match_pct:        Math.round((1 - (metrics.driftCritical + metrics.driftHigh) / n) * 10000) / 100,
+      operational_match_pct: Math.round((1 - (metrics.driftCritical + metrics.driftHigh + metrics.driftMedium) / n) * 10000) / 100,
     };
   },
   resetMetrics() {
