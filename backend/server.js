@@ -22,6 +22,11 @@ const scanRoutes = require('./routes/scan');
 const checkRoutes = require('./routes/check');
 const reportRoutes = require('./routes/report');
 const userRoutes = require('./routes/user');
+const intelligenceRoutes = require('./routes/intelligence');
+const HealthService = require('./observability/HealthService');
+const MetricsCollector = require('./observability/MetricsCollector');
+const PrometheusExporter = require('./observability/PrometheusExporter');
+const metricsCollector = new MetricsCollector();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -83,6 +88,7 @@ app.use('/api/v1/report', reportRoutes);
 app.use('/api/v1/user', userRoutes);
 const reputationRoutes = require('./routes/reputation');
 app.use('/api/v1', reputationRoutes);
+app.use('/api/v1/intelligence', intelligenceRoutes);
 
 // Initialize global SRE metrics counters for Prometheus compatibility
 if (!global.appMetrics) {
