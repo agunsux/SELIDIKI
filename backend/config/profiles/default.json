@@ -1,0 +1,42 @@
+{
+  "app": {
+    "name": "ARGUS",
+    "version": "1.1.0",
+    "port": 3000,
+    "apiPrefix": "/api/v1"
+  },
+  "database": {
+    "poolMin": 2,
+    "poolMax": 10,
+    "poolIdleTimeoutMs": 30000,
+    "connectionTimeoutMs": 5000,
+    "ssl": false
+  },
+  "cache": {
+    "defaultTTL": 600,
+    "maxEntries": 10000,
+    "negativeCacheTTL": 60
+  },
+  "rateLimit": {
+    "windowMs": 900000,
+    "max": 100,
+    "strictWindowMs": 60000,
+    "strictMax": 10
+  },
+  "otp": {
+    "expiryMs": 300000,
+    "length": 6,
+    "devCode": "123456"
+  },
+  "jwt": {
+    "expiresIn": "30d"
+  },
+  "audit": {
+    "retentionDays": 90,
+    "exportFormats": ["json", "csv"]
+  },
+  "monitoring": {
+    "metricsIntervalMs": 60000,
+    "healthCheckIntervalMs": 30000
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "app": {
+    "name": "ARGUS (staging)",
+    "debug": true
+  },
+  "database": {
+    "poolMin": 2,
+    "poolMax": 8,
+    "ssl": true
+  },
+  "cache": {
+    "defaultTTL": 300,
+    "maxEntries": 5000
+  },
+  "rateLimit": {
+    "max": 200,
+    "strictMax": 20
+  },
+  "logging": {
+    "level": "info",
+    "prettyPrint": false
+  }
+}

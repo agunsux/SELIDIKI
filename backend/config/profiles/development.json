@@ -1,0 +1,26 @@
+{
+  "app": {
+    "name": "ARGUS (dev)",
+    "debug": true
+  },
+  "database": {
+    "poolMin": 1,
+    "poolMax": 5,
+    "ssl": false
+  },
+  "cache": {
+    "defaultTTL": 60,
+    "maxEntries": 1000
+  },
+  "rateLimit": {
+    "max": 1000,
+    "strictMax": 100
+  },
+  "otp": {
+    "devCode": "123456"
+  },
+  "logging": {
+    "level": "debug",
+    "prettyPrint": true
+  }
+}

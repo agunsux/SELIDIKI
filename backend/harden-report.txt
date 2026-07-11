@@ -1,0 +1,115 @@
+═══════════════════════════════════════════
+  ARGUS v1.1 — Production Hardening Report
+  2026-07-11T16:55:36.096Z
+═══════════════════════════════════════════
+
+Total issues found: 172
+
+[TODO] 12 found:
+  graph\RelationshipResolver.js:102 → static async linkPhoneToDomain(phoneHash, domain, properties = {}) {
+  scripts\harden.js:15 → * - TODO/FIXME/placeholder patterns
+  scripts\harden.js:24 → /TODO/i,
+  scripts\harden.js:35 → todos: [],
+  scripts\harden.js:68 → if (/TODO/i.test(line) && !/TODO/i.test(line) === false) {
+  scripts\harden.js:69 → RESULTS.todos.push({ file: relative, line: num, text: line.trim() });
+  scripts\harden.js:197 → if (RESULTS.todos.length > 0) {
+  scripts\harden.js:198 → report.push(`[TODO] ${RESULTS.todos.length} found:`);
+  scripts\harden.js:199 → RESULTS.todos.slice(0, 10).forEach(i => report.push(`  ${i.file}:${i.line} → ${i.text}`));
+  scripts\harden.js:200 → if (RESULTS.todos.length > 10) report.push(`  ... and ${RESULTS.todos.length - 10} more`);
+  ... and 2 more
+
+[FIXME] 9 found:
+  scripts\harden.js:15 → * - TODO/FIXME/placeholder patterns
+  scripts\harden.js:25 → /FIXME/i,
+  scripts\harden.js:36 → fixmes: [],
+  scripts\harden.js:71 → if (/FIXME/i.test(line)) {
+  scripts\harden.js:72 → RESULTS.fixmes.push({ file: relative, line: num, text: line.trim() });
+  scripts\harden.js:204 → if (RESULTS.fixmes.length > 0) {
+  scripts\harden.js:205 → report.push(`[FIXME] ${RESULTS.fixmes.length} found:`);
+  scripts\harden.js:206 → RESULTS.fixmes.forEach(i => report.push(`  ${i.file}:${i.line} → ${i.text}`));
+  scripts\harden.js:247 → if (RESULTS.fixmes.length > 0) report.push('  - Address FIXMEs before production');
+
+[PLACEHOLDER] 18 found:
+  config\SecretResolver.js:126 → // Placeholder for cloud secret manager integration
+  graph\GraphRepository.js:54 → const placeholders = nodeIds.map((_, i) => `$${i + 1}`).join(',');
+  graph\GraphRepository.js:57 → WHERE source_id IN (${placeholders}) OR target_id IN (${placeholders})
+  graph\GraphRepository.js:102 → const placeholders = nodes.map((node, i) => {
+  graph\GraphRepository.js:110 → VALUES ${placeholders.join(',')}
+  graph\GraphRepository.js:126 → const placeholders = edges.map((edge, i) => {
+  graph\GraphRepository.js:134 → VALUES ${placeholders.join(',')}
+  scripts\harden.js:15 → * - TODO/FIXME/placeholder patterns
+  scripts\harden.js:26 → /PLACEHOLDER/i,
+  scripts\harden.js:37 → placeholders: [],
+  scripts\harden.js:74 → if (/placeholder/i.test(line)) {
+  scripts\harden.js:75 → RESULTS.placeholders.push({ file: relative, line: num, text: line.trim() });
+  scripts\harden.js:210 → if (RESULTS.placeholders.length > 0) {
+  scripts\harden.js:211 → report.push(`[PLACEHOLDER] ${RESULTS.placeholders.length} found:`);
+  scripts\harden.js:212 → RESULTS.placeholders.forEach(i => report.push(`  ${i.file}:${i.line} → ${i.text}`));
+  scripts\harden.js:248 → if (RESULTS.placeholders.length > 0) report.push('  - Implement placeholder functions');
+  timeline\TimelineRepository.js:58 → const placeholders = entityHashes.map((_, i) => `$${i + 1}`).join(',');
+  timeline\TimelineRepository.js:59 → let query = `SELECT * FROM timeline_events WHERE entity_hash IN (${placeholders})`;
+
+[console.log] 90 found:
+  audit\AuditRetention.js:27 → console.log(`AuditRetention: Purged ${purgedCount} logs older than ${retentionDays} days`);
+  audit\AuditRetention.js:66 → console.log(`AuditRetention: Archived ${result.rows.length} logs to ${filePath}`);
+  cache\CacheWarming.js:57 → console.log(`CacheWarming: Warmed ${warmed} entries in ${Date.now() - start}ms`);
+  config\ConfigLoader.js:52 → console.log(`ConfigLoader: Loaded "${this._profile}" profile`);
+  db\init.js:68 → console.log('Database initialized successfully');
+  db\migrate.js:7 → console.log('🏁 Running PostgreSQL database migrations...');
+  db\migrate.js:11 → console.log('No migrations folder found.');
+  db\migrate.js:19 → console.log(`Executing migration: ${file}`);
+  db\migrate.js:23 → console.log(`✅ Success: ${file}`);
+  db\migrate.js:30 → console.log('🎉 All PostgreSQL migrations completed successfully!');
+  ... and 80 more
+
+[Large Files >200 lines] 16 found:
+  audit\AuditRepository.js (215 lines)
+  dashboard\DashboardAPI.js (259 lines)
+  graph\RelationshipResolver.js (214 lines)
+  jobs\JobQueue.js (230 lines)
+  providers\ProviderManager.js (207 lines)
+  scripts\captureBaseline.js (242 lines)
+  scripts\harden.js (279 lines)
+  scripts\readiness\runner.js (304 lines)
+  scripts\runOperationalValidation.js (532 lines)
+  scripts\seedFraudDataset.js (241 lines)
+
+[Orphan Files] 22 found:
+  cache\CacheInvalidation.js
+  cache\CachePolicy.js
+  config\EnvironmentProfiles.js
+  config\repositoryRegistry.js
+  config\SecretResolver.js
+  config\ValidationSchema.js
+  jobs\RetryManager.js
+  jobs\Scheduler.js
+  jobs\WorkerPool.js
+  ml\FeatureRegistry.js
+  models\RiskResult.js
+  observability\AlertManager.js
+  observability\OpenTelemetryExporter.js
+  observability\StructuredLogger.js
+  providers\adapters\GoogleSafeBrowsingAdapter.js
+  providers\adapters\VirusTotalAdapter.js
+  repositories\interfaces\index.js
+  repositories\interfaces\phoneRepositoryInterface.js
+  services\fraudGraph.js
+  services\historyService.js
+  utils\configValidator.js
+  utils\pgErrorTranslator.js
+
+[Duplicate Utilities] 5 found:
+  routes\check.js → maskPhone-like function
+  routes\check.js → scoreToStatus-like function
+  scripts\harden.js → maskPhone-like function
+  scripts\harden.js → parseBool-like function
+  scripts\harden.js → scoreToStatus-like function
+
+⚠ 172 issue(s) found. Recommended actions:
+  - Convert TODOs to tracked tasks
+  - Address FIXMEs before production
+  - Implement placeholder functions
+  - Consolidate duplicate utilities
+  - Review and remove orphan files
+
+───────────────────────────────────────────

@@ -1,0 +1,29 @@
+{
+  "app": {
+    "name": "ARGUS",
+    "debug": false
+  },
+  "database": {
+    "poolMin": 5,
+    "poolMax": 20,
+    "ssl": true,
+    "poolIdleTimeoutMs": 10000
+  },
+  "cache": {
+    "defaultTTL": 600,
+    "maxEntries": 50000,
+    "negativeCacheTTL": 120
+  },
+  "rateLimit": {
+    "max": 100,
+    "strictMax": 10
+  },
+  "logging": {
+    "level": "info",
+    "prettyPrint": false
+  },
+  "audit": {
+    "retentionDays": 180,
+    "exportFormats": ["json", "csv"]
+  }
+}

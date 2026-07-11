@@ -28,6 +28,9 @@ const MetricsCollector = require('./observability/MetricsCollector');
 const PrometheusExporter = require('./observability/PrometheusExporter');
 const metricsCollector = new MetricsCollector();
 
+const RuntimeValidator = require('./runtime/RuntimeValidator');
+const StartupReport = require('./runtime/StartupReport');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -89,6 +92,52 @@ app.use('/api/v1/user', userRoutes);
 const reputationRoutes = require('./routes/reputation');
 app.use('/api/v1', reputationRoutes);
 app.use('/api/v1/intelligence', intelligenceRoutes);
+const dashboardRoutes = require('./dashboard/DashboardAPI');
+app.use('/api/dashboard', dashboardRoutes);
+const publicRoutes = require('./public/PublicAPI');
+app.use('/api/public', publicRoutes);
+const searchRoutes = require('./search/SearchRouter');
+app.use('/api/v1/search', searchRoutes);
+const publicV2Routes = require('./public/PublicAPIv2');
+app.use('/api/v2', publicV2Routes);
+const enterpriseRoutes = require('./enterprise/EnterpriseAPI');
+app.use('/enterprise', enterpriseRoutes);
+const AuditService = require('./audit/AuditService');
+app.get('/api/audit', async (req, res) => {
+  try {
+    const result = await AuditService.query({
+      action: req.query.action,
+      actorType: req.query.actor_type,
+      targetType: req.query.target_type,
+      limit: req.query.limit,
+      offset: req.query.offset,
+      from: req.query.from,
+      to: req.query.to,
+    });
+    res.apiSuccess(result.rows, 'Audit logs retrieved', { total: result.total, limit: result.limit, offset: result.offset });
+  } catch (err) {
+    res.apiError(err.message, 'Failed to retrieve audit logs', 500);
+  }
+});
+app.get('/api/audit/export/:format', async (req, res) => {
+  try {
+    const format = req.params.format === 'csv' ? 'csv' : 'json';
+    const content = await AuditService.export({
+      action: req.query.action,
+      from: req.query.from,
+      to: req.query.to,
+    }, format);
+    if (format === 'csv') {
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="audit_export.csv"');
+    } else {
+      res.setHeader('Content-Type', 'application/json');
+    }
+    res.send(content);
+  } catch (err) {
+    res.apiError(err.message, 'Failed to export audit logs', 500);
+  }
+});
 
 // Initialize global SRE metrics counters for Prometheus compatibility
 if (!global.appMetrics) {
@@ -101,64 +150,92 @@ if (!global.appMetrics) {
 
 const startTime = Date.now();
 
-// ── Health Check ──────────────────────────────────────────
+// ── Health, Readiness, Liveness Endpoints ────────────────
+
+/**
+ * GET /health — Comprehensive health check (heavy, validates all dependencies)
+ */
 app.get('/health', async (req, res) => {
-  const db = require('./utils/db');
-  const { flags } = require('./config/featureFlags');
-  const shadowManager = require('./utils/shadowManager');
-
-  let postgresHealth = 'healthy';
   try {
-    await db.query('SELECT 1');
-  } catch (err) {
-    postgresHealth = 'unhealthy';
-  }
+    const checks = {};
+    let postgresHealth = 'healthy';
+    let firestoreHealth = 'healthy';
+    let shadowHealth = 'healthy';
 
-  let firestoreHealth = 'healthy';
-  try {
-    const admin = require('firebase-admin');
-    if (admin.apps.length === 0) {
-      firestoreHealth = 'unhealthy';
-    }
-  } catch (err) {
-    firestoreHealth = 'unhealthy';
-  }
+    try {
+      const db = require('./utils/db');
+      await db.query('SELECT 1');
+    } catch { postgresHealth = 'unhealthy'; }
 
-  let shadowHealth = 'healthy';
-  try {
-    if (shadowManager.isCircuitOpen()) {
-      shadowHealth = 'circuit_breaker_open';
-    }
-  } catch (err) {
-    shadowHealth = 'unhealthy';
-  }
+    try {
+      const admin = require('firebase-admin');
+      if (admin.apps.length === 0) firestoreHealth = 'unhealthy';
+    } catch { firestoreHealth = 'unhealthy'; }
 
-  const overallStatus = (postgresHealth === 'healthy' && firestoreHealth === 'healthy') ? 'healthy' : 'degraded';
+    try {
+      const shadowManager = require('./utils/shadowManager');
+      if (shadowManager.isCircuitOpen()) shadowHealth = 'circuit_breaker_open';
+    } catch { shadowHealth = 'unhealthy'; }
 
-  res.json({
-    status: overallStatus,
-    timestamp: new Date().toISOString(),
-    uptime: Math.round((Date.now() - startTime) / 1000),
-    checks: {
-      postgres: postgresHealth,
-      firestore: firestoreHealth,
-      shadow: shadowHealth,
-      migration: flags.DATABASE_SWITCHING ? 'active' : 'inactive',
-      repository: 'healthy'
-    },
-    telemetry: {
-      provider: flags.FIRESTORE ? (flags.POSTGRES ? 'DUAL' : 'FIRESTORE') : 'POSTGRES',
-      shadow_mode: flags.SHADOW_MODE,
-      circuit_breaker: {
-        open: shadowManager.isCircuitOpen(),
-      },
-      pool: {
-        total: db.pool ? db.pool.totalCount || 0 : 0,
-        idle: db.pool ? db.pool.idleCount || 0 : 0,
-        waiting: db.pool ? db.pool.waitingCount || 0 : 0,
-        active: db.pool ? (db.pool.totalCount || 0) - (db.pool.idleCount || 0) : 0,
+    const { flags } = require('./config/featureFlags');
+    const db = require('./utils/db');
+    const shadowManager = require('./utils/shadowManager');
+
+    checks.postgres = postgresHealth;
+    checks.firestore = firestoreHealth;
+    checks.shadow = shadowHealth;
+    checks.migration = flags.DATABASE_SWITCHING ? 'active' : 'inactive';
+    checks.repository = 'healthy';
+
+    const overallStatus = (postgresHealth === 'healthy' && firestoreHealth === 'healthy') ? 'healthy' : 'degraded';
+
+    res.json({
+      status: overallStatus,
+      timestamp: new Date().toISOString(),
+      uptime: Math.round((Date.now() - startTime) / 1000),
+      checks,
+      telemetry: {
+        provider: flags.FIRESTORE ? (flags.POSTGRES ? 'DUAL' : 'FIRESTORE') : 'POSTGRES',
+        shadow_mode: flags.SHADOW_MODE,
+        circuit_breaker: { open: shadowManager.isCircuitOpen() },
+        pool: {
+          total: db.pool ? db.pool.totalCount || 0 : 0,
+          idle: db.pool ? db.pool.idleCount || 0 : 0,
+          waiting: db.pool ? db.pool.waitingCount || 0 : 0,
+          active: db.pool ? (db.pool.totalCount || 0) - (db.pool.idleCount || 0) : 0,
+        }
       }
-    }
+    });
+  } catch (err) {
+    res.status(500).json({ status: 'unhealthy', error: err.message, timestamp: new Date().toISOString() });
+  }
+});
+
+/**
+ * GET /ready — Readiness probe (is app ready to serve traffic?)
+ */
+app.get('/ready', async (req, res) => {
+  try {
+    const result = await RuntimeValidator.quickHealth();
+    const ready = result.status === 'AVAILABLE';
+    res.status(ready ? 200 : 503).json({
+      status: ready ? 'ready' : 'not_ready',
+      dependencies: result.dependencies,
+      timestamp: result.timestamp,
+    });
+  } catch (err) {
+    res.status(503).json({ status: 'not_ready', error: err.message, timestamp: new Date().toISOString() });
+  }
+});
+
+/**
+ * GET /live — Liveness probe (is the process alive?)
+ */
+app.get('/live', (req, res) => {
+  res.json({
+    status: 'alive',
+    uptime: Math.round((Date.now() - startTime) / 1000),
+    timestamp: new Date().toISOString(),
   });
 });
 
