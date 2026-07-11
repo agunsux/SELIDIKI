@@ -244,7 +244,9 @@ app.use((err, req, res, next) => {
 });
 
 // ── Start ─────────────────────────────────────────────────
-if (process.env.NODE_ENV !== 'test') {
+// Vercel Serverless: must NOT call app.listen()
+// Vercel manages HTTP lifecycle itself.
+if (!process.env.VERCEL && process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`🛡️  SELIDIKI API running on port ${PORT}`);
     console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);

@@ -1,5 +1,7 @@
 {
   "version": 2,
+  "installCommand": "cd backend && npm install",
+  "buildCommand": "cd backend && npm install",
   "builds": [
     {
       "src": "backend/server.js",
@@ -7,22 +9,10 @@
     }
   ],
   "routes": [
-    {
-      "src": "/health",
-      "dest": "backend/server.js"
-    },
-    {
-      "src": "/metrics",
-      "dest": "backend/server.js"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "backend/server.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "backend/server.js"
-    }
+    { "src": "/health", "dest": "backend/server.js" },
+    { "src": "/metrics", "dest": "backend/server.js" },
+    { "src": "/api/(.*)", "dest": "backend/server.js" },
+    { "src": "/(.*)", "dest": "backend/server.js" }
   ],
   "functions": {
     "backend/server.js": {
