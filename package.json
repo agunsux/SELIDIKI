@@ -1,7 +1,12 @@
 {
+  "name": "selidiki-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend"
+  ],
   "dependencies": {
     "knex": "^3.3.0",
-    "sqlite3": "^6.0.1",
-    "uuid": "^14.0.1"
+    "sqlite3": "^6.0.1"
   }
 }

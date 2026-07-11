@@ -59,11 +59,13 @@ mobile/.flutter-plugins
 mobile/.flutter-plugins-dependencies
 
 .vercel
+
+.vercel
 # AI-generated scratch files  
 _*.js  
 _*.txt  
 _*.ps1  
 _*.json  
 gen_all.ps1  
-backend\observability\  
-gen_all.ps1 
+backend/observability/  
+gen_all.ps1

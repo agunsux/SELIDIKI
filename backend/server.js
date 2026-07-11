@@ -153,6 +153,22 @@ const startTime = Date.now();
 // ── Health, Readiness, Liveness Endpoints ────────────────
 
 /**
+ * GET / — Service root metadata
+ */
+app.get('/', (req, res) => {
+  res.json({
+    service: 'SELIDIKI API',
+    status: 'healthy',
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'production',
+    health: '/health',
+    ready: '/ready',
+    live: '/live',
+    metrics: '/metrics'
+  });
+});
+
+/**
  * GET /health — Comprehensive health check (heavy, validates all dependencies)
  */
 app.get('/health', async (req, res) => {
