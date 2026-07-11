@@ -36,12 +36,28 @@ const PORT = process.env.PORT || 3000;
 
 // ── Firebase Admin Init ───────────────────────────────────
 try {
-  initializeApp({
-    credential: process.env.GOOGLE_APPLICATION_CREDENTIALS
-      ? cert(process.env.GOOGLE_APPLICATION_CREDENTIALS)
-      : undefined, // Uses ADC in Cloud Run
-    projectId: process.env.FIREBASE_PROJECT_ID,
-  });
+  const hasDiscreteCreds = process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY;
+  const hasFilePathCreds = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+
+  if (hasDiscreteCreds || hasFilePathCreds) {
+    const firebaseConfig = {
+      projectId: process.env.FIREBASE_PROJECT_ID,
+    };
+
+    if (hasDiscreteCreds) {
+      firebaseConfig.credential = cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      });
+    } else {
+      firebaseConfig.credential = cert(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+    }
+
+    initializeApp(firebaseConfig);
+  } else {
+    console.warn('Firebase init skipped: No credentials provided in environment variables.');
+  }
 } catch (err) {
   console.warn('Firebase init skipped (dev mode):', err.message);
 }
